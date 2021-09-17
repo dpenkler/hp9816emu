@@ -37,8 +37,11 @@ When a H7XX label is clicked a menu to load the corresponding disc image is post
 ### A number of files are required for the emulator to work:
 
  9816FontW.ppm      - the characterset fonts in white
+ 
  9816A.ppm          - background bitmap for labels and annunciators
+ 
  9816-L.KML         - configuration file for Rom, buttons and annunciators
+ 
  rom30.bin          - the binary contents of Rom3.0 (9816 BIOS)
 
 ### Other files:
