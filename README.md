@@ -34,14 +34,14 @@ When a H7XX label is clicked a menu to load the corresponding disc image is post
 
 ## Files
 
-###A number of files are required for the emulator to work:
+### A number of files are required for the emulator to work:
 
  9816FontW.ppm      - the characterset fonts in white
  9816A.ppm          - background bitmap for labels and annunciators
  9816-L.KML         - configuration file for Rom, buttons and annunciators
  rom30.bin          - the binary contents of Rom3.0 (9816 BIOS)
 
-###Other files:
+### Other files:
 
   Disk Image Files
 
@@ -62,7 +62,7 @@ Note: All files in use by the system when the image was created must still be pr
 ## Keyboard
 
    The HP9816 special keys are mapped to the US QWERTY keyboad as follows:
-   
+   ```
    UK Keyboard       HP9816 Key
    -------------     ----------
    [Escape]        = Clear I/O
@@ -90,6 +90,7 @@ Note: All files in use by the system when the image was created must still be pr
    [Alt]+[Ins]     = Insert line
    [Del]           = Delete char
    [Alt]+[Del]     = Delte line
+```
 
 For HPL }  = Right arrow symbol (assignment)
 
@@ -98,7 +99,7 @@ The mappings are defined in keyboard.c
 
 ## Resources
 
-For history, documentation and software for the 9816 see the wonderful [site](http://www.hpmuseum.net/display_item.php?hw=4)
+For history, documentation and software for the 9816 see the wonderful [HP Comupter Museum](http://www.hpmuseum.net/display_item.php?hw=4)
 maintained by the wizards of Oz.
 
 ## Issues and enhancement requests
