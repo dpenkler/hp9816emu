@@ -780,6 +780,8 @@ static UINT SaveChanges(BOOL bAuto) {
 }
 
 static void loadSICB(EZ_Widget *w, void *d) {
+  EZ_HideWidget(siMenu);
+  siMenuPosted = 0;
   EZ_ConfigureWidget(fileSelector,
 		     EZ_CALLBACK, setBufferFilename, (void *)OnFileOpen,
 		     EZ_CLIENT_INT_DATA, (long)d,
@@ -798,6 +800,8 @@ static void saveSICB(EZ_Widget *w, void *data) {
 }
 
 static void saveAsSICB(EZ_Widget *w, void *data) {
+  EZ_HideWidget(siMenu);
+  siMenuPosted = 0;
   if (pbyRom == NULL) return;
   EZ_ConfigureWidget(fileSelector,
 		     EZ_CALLBACK, setBufferFilename, (void *)OnFileSaveAs,
@@ -821,7 +825,7 @@ static int OnFileNew(VOID) {
   imageFile[0] = 0;
   if (pbyRom) SwitchToState(mstate);
   EZ_HideWidget(siMenu);
-  siMenuPosted =0;
+  siMenuPosted = 0;
   return 0;
 }
 
@@ -843,8 +847,6 @@ static int OnFileOpen(VOID) {
   }
  cancel:
   if (pbyRom) SwitchToState(mstate);
-  EZ_HideWidget(siMenu);
-  siMenuPosted =0;
   return 0;
 }
 
