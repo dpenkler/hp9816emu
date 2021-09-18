@@ -57,3 +57,13 @@ dkms.conf
 # system image files
 #
 *.img
+
+#
+# printer files
+#
+printer-*.txt
+
+#
+# TAGS file
+#
+TAGS
