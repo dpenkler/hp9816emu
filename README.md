@@ -35,7 +35,7 @@ $ ./hp9816emu
 
 ```
 
-Press the *Run* button
+Press the **Run** button
 
 Load a disk image (e.g. Press on the *H730* in the right hand panel
 and load the dmpas.hpi disk image)
@@ -43,21 +43,17 @@ and load the dmpas.hpi disk image)
 
 ## Features
 
-The HPIB peripherals are preconfigured on select code 7
+The following HPIB peripherals are preconfigured on select code 7 and cannot be changed:
 
-Bus address 0: hp9121 amigo floppy disk drive units 0 (H700) and 1 (H701)
-               This is mainly for the HPL2 operating system.
-	       HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
-	       Basic and Pascal OK.
-
-Bus address 1: printer - prints to file on host local file system:
+* Bus address 0: hp9121 amigo floppy disk drive units 0 (H700) and 1 (H701)
+            -  This is mainly for the HPL2 operating system.
+	    -  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
+	    -  Basic and Pascal OK.
+* Bus address 1: printer - prints to file on host local file system:
                printer-xxx.txt
-
-Bus address 2: hp9122 ss/80 floppy disk drive units 0 (H720) and 1 (H721)
-
-Bus address 3: hp7908 cs/80 hard drive (H730)
-
-Bus address 4: hp7908 cs/80 hard drive (H740)
+* Bus address 2: hp9122 ss/80 floppy disk drive units 0 (H720) and 1 (H721)
+* Bus address 3: hp7908 cs/80 hard drive (H730)
+* Bus address 4: hp7908 cs/80 hard drive (H740)
 
 When a H7XX label is clicked a menu to load the corresponding disk image is posted.
 
@@ -113,7 +109,7 @@ present at the same location (kml and hpi files).
 
 ### Settings
 
-The *Settings* button allows you to choose the memory size and whether
+The **Settings** button allows you to choose the memory size and whether
 the floating point unit is enabled or not. These two settings only
 take effect when initialising a **New** system image. Pascal programs
 compiled with the `$FLOAT_HDW ON$` directive require the floating
@@ -138,7 +134,7 @@ To hide the Settings menu just click ok OK.
 
 ### Speed
 
-The *Speed* button allows you to set the speed of the emulated MC68000
+The **Speed** button allows you to set the speed of the emulated MC68000
 clock.  Choices are 8, 16, 24, 32 MHz and Max. For games it should be
 set to the standard 8MHz frequency.  Depending on the speed of your
 processor you might see some "NT workaround" messages on the stderr.
@@ -158,14 +154,14 @@ This menu's items are as follows:
 * **New** creates a clean system image and reboot the system.
 * **Load** an existing image and run it.
 * **Save** the running system in the existing image (Reflected in the window title).
-* **SaveAs** the running system i
+* **SaveAs** the running system in a file of your choice. If ok will be reflected in the window title).
 * **Close** saves the image in the existing (or default) file and dissociates the file name from the running image (Reflected by "Untitled" in the window title.
 
-To hide the SystemImage menu without doing anything just click on the *SystemImage* button again.
+To hide the SystemImage menu without doing anything just click on the*t *SystemImage** button again.
 
 ### Run button
 
-The emulator is implemented using 2 threads. One for the main and UI functions and another to emulate the actual CPU. When the *Run* button is depressed (on) the CPU thread fetches and executes instructions and polls for I/O events. When the *Run* button is off the cpu thread goes into an idle loop.
+The emulator is implemented using 2 threads. One for the main and UI functions and another to emulate the actual CPU. When the **Run** button is depressed (on) the CPU thread fetches and executes instructions and polls for I/O events. When the **Run** button is off the cpu thread goes into an idle loop.
 
 ## Right hand panel
 
@@ -192,7 +188,7 @@ The indicators in front of the 9212D,9122D and 7908 drive labels are lit when th
 
 The indicators in front of the H7XX buttons flash when there is activity on the drive unit
 
-The H7XX button labels light red when there is a disk image associated with the drive unit. Ths LIF volume label appears below it.
+The H7XX button labels light red when there is a disk image associated with the drive unit. The LIF volume label appears below it.
 
 The green bars above the red graphics reset button correspond to the LEDs on the back of the 9816 CPU board.
 
