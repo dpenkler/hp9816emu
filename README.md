@@ -33,6 +33,13 @@ $ cp hp9816emu ..
 $ cd <path to hp9816emu>
 $ ./hp9816emu
 
+```
+
+Press the *Run* button
+
+Load a disk image (e.g. Press on the *H730* in the right hand panel
+and load the dmpas.hpi disk image)
+
 
 ## Features
 
@@ -81,8 +88,9 @@ You can load it by clicking on the H730 button on the right hand panel.
 It contains a number of operating systems.
 By default it will boot into Pascal 1P SYSTEM_P
 
-To boot another OS press any key while the boot Rom is running the memory test.
-When you see "SEARCHING FOR A SYSTEM (ENTER To Pause)" type the two characters corresponding to the OS you want to boot:
+To boot another OS press any key while the boot Rom is running the
+memory test.  When you see "SEARCHING FOR A SYSTEM (ENTER To Pause)"
+type the two characters corresponding to the OS you want to boot:
 
 ```
  1P for Pascal
@@ -96,17 +104,20 @@ When you see "SEARCHING FOR A SYSTEM (ENTER To Pause)" type the two characters c
 
 It is possible to save the current running system in a system image file.
 
-If a system image file is passed as a runtime argument or loaded via the SystemImage menu the emulator loads and runs the image.
-Note: All files in use by the system when the image was created must still be present at the same location (kml and hpi files).
+If a system image file is passed as a runtime argument or loaded via
+the SystemImage menu the emulator loads and runs the image.  Note: All
+files in use by the system when the image was created must still be
+present at the same location (kml and hpi files).
 
 ## Top bar menu
 
 ### Settings
 
 The *Settings* button allows you to choose the memory size and whether
-the floating point unit is enabled or not. These two settings only take
-effect when initialising a **New** system image. Pascal programs compiled with the
-`$FLOAT_HDW ON$` directive require the floating point unit to be enabled.
+the floating point unit is enabled or not. These two settings only
+take effect when initialising a **New** system image. Pascal programs
+compiled with the `$FLOAT_HDW ON$` directive require the floating
+point unit to be enabled.
 
 There are 3 general settings: "Set system time", "Auto save system image" and "Auto save on exit".
 The general settings take effect immediately.
@@ -127,11 +138,14 @@ To hide the Settings menu just click ok OK.
 
 ### Speed
 
-The *Speed* button allows you to set the speed of the emulated MC68000 clock.
-Choices are 8, 16, 24, 32 MHz and Max. For games it should be set to the standard 8MHz frequency.
-Depending on the speed of your processor you might see some "NT workaround" messages on the stderr.
-This is indicates that the processor is too slow to effectively run at the required frequency.
-The message is normal when interacting with the UI elements since the X-Window system locks out the CPU emulation thread during those times.
+The *Speed* button allows you to set the speed of the emulated MC68000
+clock.  Choices are 8, 16, 24, 32 MHz and Max. For games it should be
+set to the standard 8MHz frequency.  Depending on the speed of your
+processor you might see some "NT workaround" messages on the stderr.
+This is indicates that the processor is too slow to effectively run at
+the required frequency.  The message is normal when interacting with
+the UI elements since the X-Window system locks out the CPU emulation
+thread during those times.
 
 The speed setting takes effect immediately.
 
@@ -185,7 +199,8 @@ The green bars above the red graphics reset button correspond to the LEDs on the
 ## Keyboard
 
    The HP9816 special keys are mapped to the US QWERTY keyboad as follows:
-   ```
+
+```
    UK Keyboard       HP9816 Key
    -------------     ----------
    [Escape]        = Clear I/O
