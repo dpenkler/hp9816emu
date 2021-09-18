@@ -45,15 +45,15 @@ and load the dmpas.hpi disk image)
 
 The following HPIB peripherals are preconfigured on select code 7 and cannot be changed:
 
-* Bus address 0: hp9121 amigo floppy disk drive units 0 (H700) and 1 (H701)
-            *  This is mainly for the HPL2 operating system.
-	    *  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
-	    *  Basic and Pascal OK.
-* Bus address 1: printer - prints to file on host local file system:
+- Bus address 0: hp9121 amigo floppy disk drive units 0 (H700) and 1 (H701)
+           -  This is mainly for the HPL2 operating system.
+	   -  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
+	   -  Basic and Pascal OK.
+- Bus address 1: printer - prints to file on host local file system:
                printer-xxx.txt
-* Bus address 2: hp9122 ss/80 floppy disk drive units 0 (H720) and 1 (H721)
-* Bus address 3: hp7908 cs/80 hard drive (H730)
-* Bus address 4: hp7908 cs/80 hard drive (H740)
+- Bus address 2: hp9122 ss/80 floppy disk drive units 0 (H720) and 1 (H721)
+- Bus address 3: hp7908 cs/80 hard drive (H730)
+- Bus address 4: hp7908 cs/80 hard drive (H740)
 
 When a H7XX label is clicked a menu to load the corresponding disk image is posted.
 
