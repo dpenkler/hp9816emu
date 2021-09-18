@@ -1,4 +1,4 @@
-CFLAG = -g -std=gnu99 -Wall -Wno-unused
+CFLAG = -g -O -std=gnu99 -Wall -Wno-unused
 
 CC= gcc
 INCLUDE = cpu9816.h hp9816emu.h common.h kml.h mops.h ops.h
