@@ -46,9 +46,9 @@ and load the dmpas.hpi disk image)
 The following HPIB peripherals are preconfigured on select code 7 and cannot be changed:
 
 * Bus address 0: hp9121 amigo floppy disk drive units 0 (H700) and 1 (H701)
-            -  This is mainly for the HPL2 operating system.
-	    -  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
-	    -  Basic and Pascal OK.
+            *  This is mainly for the HPL2 operating system.
+	    *  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
+	    *  Basic and Pascal OK.
 * Bus address 1: printer - prints to file on host local file system:
                printer-xxx.txt
 * Bus address 2: hp9122 ss/80 floppy disk drive units 0 (H720) and 1 (H721)
@@ -157,7 +157,7 @@ This menu's items are as follows:
 * **SaveAs** the running system in a file of your choice. If ok will be reflected in the window title).
 * **Close** saves the image in the existing (or default) file and dissociates the file name from the running image (Reflected by "Untitled" in the window title.
 
-To hide the SystemImage menu without doing anything just click on the*t *SystemImage** button again.
+To hide the SystemImage menu without doing anything just click on the **SystemImage** button again.
 
 ### Run button
 
