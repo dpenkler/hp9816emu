@@ -24,6 +24,7 @@
 extern int      bKeeptime; // set system time
 extern int      bFPU;      // hp98635 floating point card enabled
 extern int      bRamInd;   // Ram size index
+extern int      memSizes[];
 extern Window	hWnd;
 		
 extern pthread_t  cpuThread;			// system thread

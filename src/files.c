@@ -5,7 +5,7 @@
  */
 
 //
-//   All stuff for files and documents, still some stuff from emu42
+//   All stuff for files and system images, still some stuff from emu42
 //
 
 #include "common.h"
@@ -37,11 +37,7 @@ static BYTE pbySignature [SignatureLength] = "hp9816emu Configuration V1.0";
 static int hCurrentFile = -1;
 
 
-//
-// 7680 Kb = 8Mb - 512kb 
-//
-static DWORD dwRamSize[] = { 256, 512, 768, 1024, 2048, 4096, 6144, 7680};
-static WORD wRamSizeNumbers = 8;
+
 static TCHAR *szDiscType0[] = { _T("None"), _T("9121D"), _T("9895D"), _T("9122D"), _T("9134A")};
 static WORD wDiscType0Numbers = 5;
 static TCHAR *szDiscType2[] = { _T("None"), _T("9121D"), _T("9895D"), _T("9122D"), _T("9134A")};
@@ -98,7 +94,8 @@ static LPBYTE  LoadRom(LPCTSTR szRomDirectory, LPCTSTR szFilename) {
 //
 static BOOL NewSettingsProc() {
   
-  Chipset.RamSize = _KB(dwRamSize[bRamInd]);	        // RAM size
+  Chipset.RamSize = _KB(memSizes[bRamInd]);	        // RAM size
+  fprintf(stderr,"Ram size is %d\n",Chipset.RamSize);
   Chipset.RamStart = 0x01000000 - Chipset.RamSize;	// from ... to 0x00FFFFFF
   
   Chipset.Hpib71x = 1;	// printer ?
@@ -112,7 +109,6 @@ static BOOL NewSettingsProc() {
   
   Chipset.RomVer = 30;
 
-  wRealSpeed = 1;
   SetSpeed(wRealSpeed);	// set speed
   
   Chipset.keeptime = bKeeptime;
@@ -182,6 +178,9 @@ VOID ResetSystemImage(VOID) {
 
 BOOL NewSystemImage(VOID) {
   hpib_stop_bus();
+
+  ResetSystemImage();
+
   if (!InitKML(szCurrentKml,FALSE)) goto restore;
 
   Chipset.type = nCurrentRomType;

@@ -41,8 +41,6 @@ typedef struct {
   int bottom;
 } RECT;
 
-#define RGBQUAD int *
-
 #define MAX_PATH 256
 #define FALSE 0
 #define TRUE 1
