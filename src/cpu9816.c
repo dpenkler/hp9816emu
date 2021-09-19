@@ -205,7 +205,7 @@ VOID SetHPTime(VOID)  {
 // adjust delay variables from speed settings
 //
 VOID SetSpeed(WORD speed) {			// set emulation speed
-  fprintf(stderr,"Setting speed to %d\n",speed);
+  //fprintf(stderr,"Setting speed to %d\n",speed);
   dwSpeedRef = getTime();		        // save reference time
   switch (speed) {
   case 0:					// max speed

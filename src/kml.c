@@ -440,7 +440,7 @@ static KmlLine* IncludeLines(LPCTSTR szFilename)  {
 }
 
 static KmlLine* ParseLines(VOID) {
-  KmlLine* pLine;
+  KmlLine* pLine = NULL;
   KmlLine* pFirst = NULL;
   TokenId  eToken;
   UINT     nLevel = 0;
@@ -659,7 +659,6 @@ static VOID InitGlobal(KmlBlock* pBlock) {
 	break;
       }
       strcpy(szRomFileName,(LPTSTR)pLine->nParam[0]);
-      fprintf(stderr,"Rom %s Loaded.\n", szRomFileName);
       break;
     case TOK_PATCH:
       if (pbyRom == NULL) {

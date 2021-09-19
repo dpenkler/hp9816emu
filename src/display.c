@@ -94,7 +94,7 @@ VOID CreateScreenBitmap(VOID)  {
   hAlpha2BM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
   // create graph image
   hGraphImg = emuCreateImage(CD16.graph_width, CD16.graph_height);
-  fprintf(stderr,"Graph im bpl %d\n",hGraphImg->bytes_per_line);
+  // fprintf(stderr,"Graph im bpl %d\n",hGraphImg->bytes_per_line);
   // create screen bitmap
   hScreenBM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
   // font bitmap

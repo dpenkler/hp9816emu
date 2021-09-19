@@ -95,7 +95,7 @@ static LPBYTE  LoadRom(LPCTSTR szRomDirectory, LPCTSTR szFilename) {
 static BOOL NewSettingsProc() {
   
   Chipset.RamSize = _KB(memSizes[bRamInd]);	        // RAM size
-  fprintf(stderr,"Ram size is %d\n",Chipset.RamSize);
+  fprintf(stderr,"Ram size is %dKB\n",Chipset.RamSize/1024);
   Chipset.RamStart = 0x01000000 - Chipset.RamSize;	// from ... to 0x00FFFFFF
   
   Chipset.Hpib71x = 1;	// printer ?
