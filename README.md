@@ -10,8 +10,9 @@ License: GPL V3
 
 ## Prerequisites
 
-The UI graphics is implemented using Maorong Zou's [EZWGL](https://github.com/dpenkler/EZWGL) library
-which must be installed before building hp9816emu.
+The UI graphics is implemented using Maorong Zou's
+[EZWGL](https://github.com/dpenkler/EZWGL) library which must be
+installed before building hp9816emu.
 
 ## Installation
 
@@ -37,7 +38,7 @@ $ ./hp9816emu
 
 Press the **Run** button
 
-Load a disk image (e.g. Press on the *H730* in the right hand panel
+Load a disk image (e.g. Press on the *H730* label in the right hand panel
 and load the dmpas.hpi disk image)
 
 
@@ -55,7 +56,7 @@ The following HPIB peripherals are preconfigured on select code 7 and cannot be 
 - Bus address 3: hp7908 cs/80 hard drive (H730)
 - Bus address 4: hp7908 cs/80 hard drive (H740)
 
-When a H7XX label is clicked a menu to load the corresponding disk image is posted.
+When a H7XX label is clicked a menu to manage the corresponding disk image is posted.
 
 ## Files
 
@@ -72,12 +73,18 @@ These files do not need to be modified by a user.
 
 ####  Disk Image Files
 
-When the emulator is *Run* initially it executes the boot rom which will
-search for an operating system to boot from the disks. To associate
-a disk image with a drive click on the drive icon H7xx corresponding
-to the drive model you have an image for and load the
-appropriate disk image. Disk image files have the .hpi suffix and can
-be created using Ansgar Kuekes' [hpdir](https://hp9845.net/9845/projects/hpdir/) utility.
+When the emulator is **Run** initially it executes the boot rom which
+will search for an operating system to boot from the disks after a
+lengthy memory test. To associate a disk image with a drive click on
+the drive icon H7xx corresponding to the drive model you have an image
+for and load the appropriate disk image. Disk image files have the
+.hpi suffix and can be created using Ansgar Kuekes'
+[hpdir](https://hp9845.net/9845/projects/hpdir/) utility.
+
+The [HP Museum](http://hpmuseum.net/exhibit.php?swc=6) has lots of
+images in TD0 format. See Ansgar's
+[Teledisk-to-hpi](https://www.hp9845.net/9845/projects/utilities/#ima2hpi)
+utilities to convert them to hpi format.
 
 A sample disk image file for a 7908 drive is provided in the repo: dmpas.hpi
 You can load it by clicking on the H730 button on the right hand panel.
@@ -145,17 +152,17 @@ thread during those times.
 
 The speed setting takes effect immediately.
 
-To hide the Speed menu without selecting a speed just click on the *Speed* button again.
+To hide the Speed menu without selecting a speed just click on the **Speed** button again.
 
 ### SystemImage
 
 This menu's items are as follows:
 
-* **New** creates a clean system image and reboot the system.
+* **New** creates a clean system image and reboots the system.
 * **Load** an existing image and run it.
 * **Save** the running system in the existing image (Reflected in the window title).
-* **SaveAs** the running system in a file of your choice. If ok will be reflected in the window title).
-* **Close** saves the image in the existing (or default) file and dissociates the file name from the running image (Reflected by "Untitled" in the window title.
+* **SaveAs** the running system in a file of your choice. If ok will be reflected in the window title.
+* **Close** saves the image in the existing (or default) file and dissociates the file name from the running image (Reflected by "Untitled" in the window title).
 
 To hide the SystemImage menu without doing anything just click on the **SystemImage** button again.
 
@@ -229,6 +236,10 @@ The green bars above the red graphics reset button correspond to the LEDs on the
 For HPL }  = Right arrow symbol (assignment)
 
 The mappings are defined in keyboard.c
+
+## Knob
+
+The knob is emulated by the mouse wheel. Unshifted moves horizontally, shifted moves vertically.
 
 ## Resources
 
