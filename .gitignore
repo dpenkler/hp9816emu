@@ -67,3 +67,8 @@ printer-*.txt
 # TAGS file
 #
 TAGS
+
+#
+# executable
+#
+hp9816emu
