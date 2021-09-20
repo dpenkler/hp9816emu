@@ -30,6 +30,7 @@ TAGS:	$(SRC) $(INCLUDE)
 
 hp9816emu: $(OBJECTS) Makefile
 	   $(CC) $(CFLAG) -o hp9816emu $(OBJECTS)  $(LIBS)
+	   cp -f hp9816emu ..
 
 $(OBJECTS):	$(INC)   #force recompile of all .o's
 
