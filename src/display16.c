@@ -20,7 +20,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 #include "mops.h"
 
 #define DEBUG_DISPLAY16G
@@ -474,7 +473,7 @@ VOID UpdateMainDisplay16(BOOL bForce) {
   WORD	dy;
   BYTE	s;
 
-  //fprintf(stderr,"%06X: Update Main Display, %d\n", Chipset.Cpu.PC, bForce);
+  fprintf(stderr,"%06X: Update Main Display, %d\n", Chipset.Cpu.PC, bForce);
 
   d = CD.start;			// adress of begining of screen
 
@@ -576,7 +575,7 @@ VOID do_display_timers16(VOID)	{
     CD.cnt ++;
     CD.cnt &= 0x3F;
     Refresh_Display16(FALSE);	// just rects
-    UpdateAnnunciators(FALSE);	// changed annunciators only
+    UpdateLeds(FALSE);	// changed annunciators only
     Cursor_Remove16();		// do the blink 
     Cursor_Display16();
   }

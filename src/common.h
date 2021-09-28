@@ -50,3 +50,4 @@ typedef struct {
 #define min(X,Y) ((X)<=(Y)?(X):(Y))
 #define wsprintf sprintf
 #define OutputDebugString(X) fprintf(stderr,X)
+#define OutputLog(X) if (bDisplayLog) fprintf(stderr,X)

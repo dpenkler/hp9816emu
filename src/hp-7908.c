@@ -21,7 +21,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 
 #define HP7908_ID1 0x02						// HPIB ID byte 1
 #define HP7908_ID2 0x00						// HPIB ID byte 2
@@ -207,7 +206,7 @@ BOOL hp7908_push_d(VOID *controler, BYTE d, BYTE eoi) {	// push on stack hd_9122
 //   FSA to simulate the disc controller (SS80 protocol)
 //
 
-static BYTE leds[] = {0, 0, 0, 12, 15};
+static BYTE leds[] = {0, 0, 0, 8, 10};
 
 VOID DoHp7908(HPSS80 *ctrl) {
   DWORD dw;
@@ -829,7 +828,7 @@ VOID DoHp7908(HPSS80 *ctrl) {
   case 2305:
     if ((ctrl->address[ctrl->unit] == 0x00000000) && (ctrl->lifname[ctrl->unit][0] == 0x00)) {
       GetLifName(ctrl, ctrl->unit);
-      kmlButtonText6(2 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+      emuUpdateButton(ctrl->hpibaddr,ctrl->unit, ctrl->lifname[ctrl->unit]);
     }
     ctrl->address[ctrl->unit]++;
     if (ctrl->count == ctrl->nbsector[ctrl->unit]) {						// last from sector sended
@@ -883,7 +882,7 @@ VOID DoHp7908(HPSS80 *ctrl) {
     if (ctrl->address[ctrl->unit] == 0x00000000) {
       ctrl->lifname[ctrl->unit][0] = 0x00;
       // GetLifName(ctrl, ctrl->unit);
-      // kmlButtonText6(4 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+      // emuUpdateButton(4 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
     }
     ctrl->address[ctrl->unit]++;
     if (ctrl->address[ctrl->unit] == disk_sectors[ctrl->type[0]])
@@ -1577,15 +1576,12 @@ BOOL hp7908_load(HPSS80 *ctrl, BYTE unit, LPCTSTR szFilename) {
   ctrl->hdisk[unit] = hDiskFile;
   ctrl->disk[unit] = (LPBYTE) 0x00000001;
   
-  // ctrl->new_medium[unit] = 1;					// disk changed, not for HD
+  // ctrl->new_medium[unit] = 1;				// disk changed, not for HD
   
   strcpy(ctrl->name[unit], szFilename);
 
-  Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + unit*2));
-  UpdateAnnunciators(FALSE);
-  
   ctrl->lifname[unit][0] = 0x00;
-  kmlButtonText6(2 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+  emuUpdateButton(ctrl->hpibaddr, unit,  ctrl->lifname[unit]);
   
   return TRUE;
 }
@@ -1609,11 +1605,8 @@ BOOL hp7908_eject(HPSS80 *ctrl, BYTE unit) {
 
 //	ctrl->err[unit].power_fail = 1;					// disk changed
 
-	Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 + unit*2));
-	UpdateAnnunciators(FALSE);	
-
 	ctrl->lifname[unit][0] = 0x00;
-	kmlButtonText6(2 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);// 6 bytes of text -16,16 pixels down
+	emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
 
 	return TRUE;
 }
@@ -1636,8 +1629,8 @@ VOID hp7908_reset(VOID *controler) {
     hp7908_load(ctrl, i, ctrl->name[i]);
     //		_ASSERT(ctrl->disk[i] != NULL);
   }
-  if (ctrl->disk[i] != NULL) {
-    Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + i*2));
+  if (ctrl->name[i][0] != 0x00) {
+    emuUpdateButton(ctrl->hpibaddr, ctrl->unit, "");
   }
 
   ctrl->head[i] = 0;
@@ -1712,9 +1705,6 @@ VOID hp7908_stop(VOID *controler) {
     ctrl->hdisk[0] = -1;
   }
 
-  Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 + 0*2));
-  UpdateAnnunciators(FALSE);	
-
   ctrl->lifname[0][0] = 0x00;
-  kmlButtonText6(2 + ctrl->hpibaddr + 0, ctrl->lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+  emuUpdateButton(ctrl->hpibaddr, ctrl->unit, ctrl->lifname[0]);
 }

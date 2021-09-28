@@ -24,7 +24,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 #include "mops.h"								// I/O definitions
 
 //#define DEBUG_HPIB
@@ -80,7 +79,7 @@ static TCHAR *HPIB_9114[] = {
 };
 #endif
 
-static CHAR *hpib_name[] = { "	   ", "9130D", "9121D", "9895D", "9122D", "9134A", "7908", "7911", "7912" };
+static CHAR *hpib_name[] = { "None ", "9121D", "9122D", "7908", "7911", "7912" };
 
 static WORD sthpib = 0;						// state for hpib state machine
 
@@ -136,78 +135,100 @@ typedef struct
 static HPIB_INST hpib_bus[8];		// max 8 instruments
 
 //
-//	Draw state and name of instruments on the border
+//	Draw state and name of instruments on right hand panel
 //
 VOID hpib_names(VOID) {
   Chipset.annun &= ~(1 << 1);
-  if (Chipset.Hpib70x != 1) {
-    kmlAnnunciatorText5(1, hpib_name[0], 18, 2);		// none
-  } else {
+  if (Chipset.Hpib70x == 1) {
+    emuUpdateDisk(0, hpib_name[1]);
     if (Chipset.Hp9121.lifname[0][0] != 0x00)
-      kmlButtonText6(1 + Chipset.Hp9121.hpibaddr + 0, Chipset.Hp9121.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, Chipset.Hp9121.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "Unit 0");
     if (Chipset.Hp9121.lifname[1][0] != 0x00)
-      kmlButtonText6(1 + Chipset.Hp9121.hpibaddr + 1, Chipset.Hp9121.lifname[1], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(1, hpib_name[2], 18, 2);		// 9121D
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, Chipset.Hp9121.lifname[1]);
+    else
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "Unit 1");
     Chipset.annun |= (1 << 1);
-  }
-  Chipset.annun &= ~(1 << 6);
-  if (Chipset.Hpib72x != 3) {
-    kmlAnnunciatorText5(6, hpib_name[0], 18, 2);		// none
   } else {
+    emuUpdateDisk(0, hpib_name[0]);
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "Unit 0");
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "Unit 1");
+  }
+  
+  Chipset.annun &= ~(1 << 4);
+  if (Chipset.Hpib72x == 3) {
     if (Chipset.Hp9122.lifname[0][0] != 0x00)
-      kmlButtonText6(1 + Chipset.Hp9122.hpibaddr + 0, Chipset.Hp9122.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, Chipset.Hp9122.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, "");
     if (Chipset.Hp9122.lifname[1][0] != 0x00)
-      kmlButtonText6(1 + Chipset.Hp9122.hpibaddr + 1, Chipset.Hp9122.lifname[1], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(6, hpib_name[4], 18, 2);		// 9122D
-    Chipset.annun |= (1 << 6);
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, Chipset.Hp9122.lifname[1]);
+    else
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, "");
+    Chipset.annun |= (1 << 4);
+  } else {
+    emuUpdateDisk(1, hpib_name[0]);
+    emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, "");
+    emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, "");
   }
-  Chipset.annun &= ~(1 << 11);
+  
+  Chipset.annun &= ~(1 << 7);
   switch (Chipset.Hpib73x) {
-  default:
-    kmlAnnunciatorText5(11, hpib_name[0], 18, 2);		// none
-    break;
   case 1:
     if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_0.hpibaddr + 0, Chipset.Hp7908_0.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(11, hpib_name[6], 18, 2);		// 7908
-    Chipset.annun |= (1 << 11);
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, "");
+    emuUpdateDisk(2, hpib_name[6]);		// 7908
+    Chipset.annun |= (1 << 7);
     break;
   case 2:
     if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_0.hpibaddr + 0, Chipset.Hp7908_0.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(11, hpib_name[7], 18, 2);		// 7911
-    Chipset.annun |= (1 << 11);
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0,  "");
+    emuUpdateDisk(2, hpib_name[7]);		// 7911
+    Chipset.annun |= (1 << 7);
     break;
   case 3:
     if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_0.hpibaddr + 0, Chipset.Hp7908_0.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(11, hpib_name[8], 18, 2);		// 7912
-    Chipset.annun |= (1 << 11);
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, "");
+    emuUpdateDisk(2, hpib_name[8]);		// 7912
+    Chipset.annun |= (1 << 7);
     break;
   }
-  Chipset.annun &= ~(1 << 14);
+  
+  Chipset.annun &= ~(1 << 9);
   switch (Chipset.Hpib74x) {
-  default:
-    kmlAnnunciatorText5(14, hpib_name[0], 18, 2);		// none
-    break;
   case 1:
     if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_1.hpibaddr + 0, Chipset.Hp7908_1.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(14, hpib_name[6], 18, 2);		// 7908
-    Chipset.annun |= (1 << 14);
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
+    emuUpdateDisk(3, hpib_name[3]);		// 7908
+    Chipset.annun |= (1 << 9);
     break;
   case 2:
     if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_1.hpibaddr + 0, Chipset.Hp7908_1.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(14, hpib_name[7], 18, 2);		// 7911
-    Chipset.annun |= (1 << 14);
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
+    emuUpdateDisk(3, hpib_name[4]);		// 7911
+    Chipset.annun |= (1 << 9);
     break;
   case 3:
     if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
-      kmlButtonText6(2 + Chipset.Hp7908_1.hpibaddr + 0, Chipset.Hp7908_1.lifname[0], -12, 19);	// 6 bytes of text -16,16 pixels down
-    kmlAnnunciatorText5(14, hpib_name[8], 18, 2);		// 7912
-    Chipset.annun |= (1 << 14);
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
+    else
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
+    emuUpdateDisk(3, hpib_name[5]);		// 7912
+    Chipset.annun |= (1 << 9);
     break;
+  default:
+    emuUpdateDisk(3, hpib_name[0]);		// 7912 
   }
 }
 

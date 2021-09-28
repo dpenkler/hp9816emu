@@ -10,14 +10,13 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 #include "mops.h"
 
 Pixmap	hFontBM;
 Pixmap	hAlpha1BM;
 Pixmap	hAlpha2BM;
 XImage *hGraphImg;
-Pixmap  hMainBM;
+//Pixmap  hMainBM;
 Pixmap  hScreenBM;
 
 LPBYTE	pbyAlpha1;
@@ -25,12 +24,12 @@ LPBYTE	pbyAlpha2;
 LPBYTE	pbyGraph;
 LPBYTE  pbyScreen;
 
-UINT    bgX = 0;		// offset of background X (from KML script)
-UINT    bgY = 0;		// offset of background Y (from KML script)
-UINT    bgW = 0;		// width of background (from KML script)
-UINT    bgH = 0;		// height of background (from KML script)
-UINT    scrX = 0;		// offset of screen X (from KML script)
-UINT    scrY = 0;		// offset of screen Y (from KML script)
+UINT    bgX = 0;		// offset of background X
+UINT    bgY = 0;		// offset of background Y
+UINT    bgW = 800;		// width of background 
+UINT    bgH = 600;		// height of background
+UINT    scrX = 0;		// offset of screen X
+UINT    scrY = 0;		// offset of screen Y
 
 #define CD16 Chipset.Display16
 
@@ -74,8 +73,6 @@ VOID CreateScreenBitmap(VOID)  {
 // default      11000000 0xC0
 // SWITCH2 0xC0
 //
-
-  Chipset.type = nCurrentRomType;	// not already assigned, do it
 
   Chipset.switch1 = 0xE5;
   Chipset.switch2 = 0xC0;
@@ -139,27 +136,6 @@ VOID DestroyScreenBitmap(VOID) {
 }
 
 //
-// allocate main bitmap for border infos
-//
-BOOL CreateMainBitmap(LPCTSTR szFilename) {
-  
-  hMainBM = emuLoadBitMap(szFilename);
-  if (hMainBM == 0) {
-    return FALSE;
-  }
-  return TRUE;
-}
-
-//
-// free main bitmap
-//
-VOID DestroyMainBitmap(VOID) {
-  if (hMainBM != 0) {
-    hMainBM = 0;
-  }
-}
-
-//
 // update the main window bitmap (border & all)
 //
 VOID UpdateMainDisplay(BOOL bForce) {
@@ -174,7 +150,7 @@ VOID Refresh_Display(BOOL bForce) {
 }
 
 // 
-// reload graph bitmap from graph mem (9837) 
+// reload graph bitmap from graph mem 
 //
 VOID Reload_Graph(VOID) {
   Reload_Graph16();
@@ -183,14 +159,14 @@ VOID Reload_Graph(VOID) {
 //
 // update display annuciators (via kml.c)
 //
-VOID UpdateAnnunciators(BOOL bForce) {
+VOID UpdateLeds(BOOL bForce) {
   int i,change=0;
-  DWORD j=1;
+  DWORD j=2;
 
   if (bForce) Chipset.pannun = ~Chipset.annun;   // force redraw all annun ?
-  for (i = 1; i < 26; ++i) {
+  for (i = 1; i < 19; ++i) {
     if ((Chipset.annun ^ Chipset.pannun) & j) { // only if state changed
-      DrawAnnunciator(i, (Chipset.annun & j));
+      emuUpdateLed(i, (Chipset.annun & j));
       change++;
     }
     j <<= 1;

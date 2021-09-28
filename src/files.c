@@ -11,32 +11,24 @@
 #include "common.h"
 #include "hp9816emu.h"
 #include "mops.h"
-#include "kml.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
-TCHAR  szHP8xDirectory[MAX_PATH];
+
+extern unsigned short rom30[];
 TCHAR  szCurrentDirectory[MAX_PATH];
-TCHAR  szCurrentKml[] = "9816-L.KML";
 TCHAR  szCurrentFilename[MAX_PATH];
 TCHAR  szBufferFilename[MAX_PATH];
-TCHAR  szRomFileName[MAX_PATH];
-static TCHAR  szBackupKml[MAX_PATH];
-static TCHAR  szBackupFilename[MAX_PATH];
 
 // pointers for roms data
 LPBYTE pbyRom = NULL;
 
-UINT   nCurrentRomType = 16;					// Model
-UINT   nCurrentClass = 0;					// Class -> derivate
 
 // document signatures
 #define SignatureLength 32
 static BYTE pbySignature [SignatureLength] = "hp9816emu Configuration V1.0";
 static int hCurrentFile = -1;
-
-
 
 static TCHAR *szDiscType0[] = { _T("None"), _T("9121D"), _T("9895D"), _T("9122D"), _T("9134A")};
 static WORD wDiscType0Numbers = 5;
@@ -52,50 +44,11 @@ static WORD wDiscType3Numbers = 4;
 //################
 
 
-static LPBYTE  LoadRom(LPCTSTR szRomDirectory, LPCTSTR szFilename) {
-  INT  hRomFile = -1;
-  DWORD dwFileSize, dwRead;
-  LPBYTE pRom = NULL;
-  struct stat rs;
-
-  fprintf(stderr,"Loading ROM file %s ... ",szFilename);
-  hRomFile = open(szFilename,0, O_RDONLY);
-  if (hRomFile < 0) {
-    hRomFile = -1;
-    perror("Failed ");
-    return NULL;
-  }
-  fstat(hRomFile,&rs);
-  dwFileSize = rs.st_size;
-  if (dwFileSize < 16*1024) { // file is too small.
-    close(hRomFile);
-    fprintf(stderr," failed - too small\n");
-    hRomFile = -1;
-    return NULL;
-  }
-
-  pRom = malloc(dwFileSize);
-  if (pRom == NULL) {
-    close(hRomFile);
-    fprintf(stderr," failed - no memory\n");
-    hRomFile = -1;
-    return NULL;
-  }
-
-  // load file content
-  read(hRomFile,pRom,dwFileSize);
-  close(hRomFile);
-  fprintf(stderr," success\n");
-  return pRom;
-}
-
 //
 // New document settings
 //
 static BOOL NewSettingsProc() {
-  
   Chipset.RamSize = _KB(memSizes[bRamInd]);	        // RAM size
-  fprintf(stderr,"Ram size is %dKB\n",Chipset.RamSize/1024);
   Chipset.RamStart = 0x01000000 - Chipset.RamSize;	// from ... to 0x00FFFFFF
   
   Chipset.Hpib71x = 1;	// printer ?
@@ -128,28 +81,6 @@ static BOOL NewSettingsProc() {
 //#
 //################
 
-//
-//   Roms
-//
-
-//
-// get the right BootRom
-//
-BOOL MapRom(LPCTSTR szRomDirectory)  {
-  if (pbyRom != NULL) return FALSE;
-  Chipset.Rom = pbyRom = LoadRom(szRomDirectory,szRomDirectory);
-  Chipset.RomSize = 64*1024;
-  return TRUE;
-}
-
-//
-// remove BootRom from bus
-//
-VOID UnmapRom(VOID) {
-  if (pbyRom==NULL)  return;
-  free(pbyRom);
-  pbyRom = NULL;
-}
 
 //
 //   System images
@@ -158,20 +89,24 @@ VOID UnmapRom(VOID) {
 VOID ResetSystemImage(VOID) {
   hpib_stop_bus();
 
-  if (szCurrentKml[0]) {
-    KillKML();
-  }
   if (hCurrentFile>=0) {
     close(hCurrentFile);
     hCurrentFile = -1;
   }
-  // szCurrentKml[0] = 0;			// preserve the current KML
   szCurrentFilename[0]=0;
   if (Chipset.Ram)  {
     free(Chipset.Ram);
     Chipset.Ram = NULL;
   }
   bzero(&Chipset,sizeof(Chipset));
+
+  pbyRom = (LPBYTE)rom30;
+  Chipset.Rom = pbyRom;
+  Chipset.RomSize = 64*1024;
+
+  DestroyScreenBitmap();
+
+  CreateScreenBitmap();
 
   UpdateWindowStatus();
 }
@@ -181,19 +116,11 @@ BOOL NewSystemImage(VOID) {
 
   ResetSystemImage();
 
-  if (!InitKML(szCurrentKml,FALSE)) goto restore;
-
-  Chipset.type = nCurrentRomType;
-
   NewSettingsProc(); // initial settings
 
   // allocate memory
   if (Chipset.Ram == NULL) {
     Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
-  }
-
-  if (Chipset.Rom == NULL) {
-    MapRom(szCurrentDirectory);
   }
 
   SystemReset();
@@ -208,7 +135,6 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
   DWORD lBytesRead,lSizeofChipset;
   BYTE  pbyFileSignature[SignatureLength];
   UINT  ctBytesCompared;
-  UINT  nLength;
 
   ResetSystemImage();
 
@@ -227,11 +153,6 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
     }
   }
 
-  read(hFile,&nLength,sizeof(nLength));
-  lBytesRead = read(hFile, szCurrentKml, nLength);
-  if (nLength != lBytesRead) goto read_err;
-  szCurrentKml[nLength] = 0;
-
   // read chipset size inside file
   lBytesRead = read(hFile, &lSizeofChipset, sizeof(lSizeofChipset));
   if (lBytesRead != sizeof(lSizeofChipset)) goto read_err;
@@ -241,27 +162,7 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
     read(hFile, &Chipset, lSizeofChipset);
   } else goto read_err;
 
-  // clean pointers
-
-  hAlpha1BM = 0;
-  hAlpha2BM = 0;
-  hGraphImg = NULL;
-  hFontBM   = 0;
-    
-  while (TRUE) {
-    BOOL bOK;
-
-    bOK = InitKML(szCurrentKml,FALSE);
-
-    bOK = bOK && (nCurrentRomType == Chipset.type);
-    if (bOK) break;
-
-    KillKML();
-    fprintf(stderr,"Could not find KML file %s\n, ciao!",szCurrentKml);
-    exit(1);
-  }
-
-  Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
+    Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
   if (Chipset.Ram == NULL) {
     fprintf(stderr,"RAM Memory Allocation Failure.");
     goto restore;
@@ -301,7 +202,7 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
   Reload_Graph();
   UpdateMainDisplay(TRUE);	// refresh screen alpha, graph & cmap
   hpib_names();
-  UpdateAnnunciators(TRUE);
+  UpdateLeds(TRUE);
   return TRUE;
 
  read_err:
@@ -314,7 +215,7 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
 BOOL SaveSystemImage(VOID) {
   DWORD           lBytesWritten;
   DWORD           lSizeofChipset;
-  UINT            nLength,nFSize=0;
+  UINT            nFSize=0;
 
   if (hCurrentFile == -1) return FALSE;
 
@@ -331,12 +232,6 @@ BOOL SaveSystemImage(VOID) {
     fprintf(stderr,"Could not write into file !");
     return FALSE;
   }
-
-  nLength = strlen(szCurrentKml);
-  lBytesWritten = write(hCurrentFile, &nLength, sizeof(nLength));
-  nFSize += lBytesWritten;
-  lBytesWritten = write(hCurrentFile, szCurrentKml, nLength);
-  nFSize += lBytesWritten;
 
   lSizeofChipset = sizeof(Chipset);
   lBytesWritten = write(hCurrentFile, &lSizeofChipset, sizeof(lSizeofChipset));
@@ -370,26 +265,3 @@ BOOL SaveSystemImageAs(LPCTSTR szFilename) {
   return SaveSystemImage();			// save current content
 }
 
-//
-//   Open File Common Dialog Boxes
-//
-
-BOOL GetOpenFilename(VOID) {
-    return TRUE;
-}
-
-BOOL GetSaveAsFilename(VOID) {
-  return TRUE;
-}
-
-BOOL GetLoadLifFilename(VOID) {
-  return TRUE;
-}
-
-BOOL GetSaveLifFilename(VOID) {
-  return TRUE;
-}
-
-BOOL GetSaveDiskFilename(LPCTSTR lpstrName) {
-  return TRUE;
-}

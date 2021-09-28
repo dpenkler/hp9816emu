@@ -22,7 +22,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 
 #define HP9122_ID1 0x02
 #define HP9122_ID2 0x22
@@ -214,11 +213,11 @@ BOOL hp9122_push_c(VOID *controler, BYTE c)	// push on stack hc_9122
 BOOL hp9122_push_d(VOID *controler, BYTE d, BYTE eoi) {	// push on stack hd_9122
   HPSS80 *ctrl = (HPSS80 *) controler;
 
-  if (ctrl->listen || ctrl->talk) {					// only if listen or talk state
+  if (ctrl->listen || ctrl->talk) {				// only if listen or talk state
     if (((ctrl->hd_hi + 1) & 0x3FF) == ctrl->hd_lo)		// if full, not done
       return FALSE;
     else {
-      ctrl->hd_t[ctrl->hd_hi] = 10;					// 10 mc68000 op cycles of transmission delay
+      ctrl->hd_t[ctrl->hd_hi] = 10;				// 10 mc68000 op cycles of transmission delay
       ctrl->hd[ctrl->hd_hi++] = (WORD) (d | (eoi << 8));
       ctrl->hd_hi &= 0x3FF;
       _ASSERT(ctrl->hd_hi != ctrl->hd_lo);
@@ -238,23 +237,24 @@ BOOL hp9122_push_d(VOID *controler, BYTE d, BYTE eoi) {	// push on stack hd_9122
 //   FSA to simulate the disc controller (SS80 protocol)
 //
 
-// for annunciator display (see kml files)
-static BYTE leds[] = {2, 0, 7};
+// for led display
+static BYTE leds[] = {0, 0, 5, 0, 6};
 
 VOID DoHp9122(HPSS80 *ctrl) {
   DWORD dw;
   BYTE eoi;
 
   if (ctrl->stss80 > 1) {										
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 0 * 2));		// unit 0 annunciator off
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 * 2));		// unit 1 annunciator off
-    if (ctrl->unit != 15)
-      Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + ctrl->unit * 2));	// unit active, light annunciator
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 0 * 2]));		// unit 0 led off
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 1 * 2]));		// unit 1 led off
+    if (ctrl->unit != 15) {
+      Chipset.annun |= (1 << (leds[ctrl->hpibaddr + ctrl->unit * 2]));	// unit active, light led
+    }
   }
   switch (ctrl->stss80) {
   case 0:								// IDLE STATE
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 0 * 2));		// unit 0 annunciator off
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 * 2));		// unit 1 annunciator off
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 0 * 2]));		// unit 0 led off
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 1 * 2]));		// unit 1 led off
     ctrl->stss80++;
     break;
   case 1:
@@ -886,7 +886,7 @@ VOID DoHp9122(HPSS80 *ctrl) {
 	ctrl->count = ctrl->nbsector[ctrl->unit];
 	if (ctrl->address[ctrl->unit] == 0x00000000) {
 	  GetLifName(ctrl, ctrl->unit);
-	  kmlButtonText6(1 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+	  emuUpdateButton(ctrl->hpibaddr, ctrl->unit, ctrl->lifname[ctrl->unit]);
 	}
 	ctrl->address[ctrl->unit]++;
 	if (ctrl->address[ctrl->unit] == (disk_sectors[ctrl->type[ctrl->unit]]))
@@ -1685,11 +1685,8 @@ BOOL hp9122_load(HPSS80 *ctrl, BYTE unit, LPCTSTR szFilename)
 
   strcpy(ctrl->name[unit], szFilename);
 
-  Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + unit*2));
-  UpdateAnnunciators(FALSE);
-
   GetLifName(ctrl, unit);
-  kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down
+  emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
 
   return TRUE;
 }
@@ -1728,11 +1725,8 @@ BOOL hp9122_eject(HPSS80 *ctrl, BYTE unit) {
 
   //	ctrl->err[unit].power_fail = 1;					// disk changed
 
-  Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 + unit*2));
-  UpdateAnnunciators(FALSE);
-
   ctrl->lifname[unit][0] = 0x00;
-  kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down
+  emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
 
   return TRUE;
 }
@@ -1768,8 +1762,8 @@ VOID hp9122_reset(VOID *controler) {
     if (ctrl->name[i][0] != 0x00) {
       hp9122_load(ctrl, i, ctrl->name[i]);
     }
-    if (ctrl->disk[i] != NULL) {
-      Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + i*2));
+    if (ctrl->name[i][0] == 0x00) {
+      emuUpdateButton(ctrl->hpibaddr, ctrl->unit, "");
     }
 
     ctrl->head[i] = 0;
@@ -1846,10 +1840,7 @@ VOID hp9122_stop(VOID *controler)
       free(ctrl->disk[unit]);
     ctrl->disk[unit] = NULL;
 
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 + unit*2));
-    UpdateAnnunciators(FALSE);
-
     ctrl->lifname[unit][0] = 0x00;
-    kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+    emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
   }
 }

@@ -58,7 +58,7 @@ VOID SystemReset(VOID) {		// register settings after System Reset
   bzero(Chipset.Ram, Chipset.RamSize);
 	
   Chipset.Keyboard.ram[0x12] = 0x00;		// us keyboard
-  Chipset.annun &= 0x001FFFF;
+  Chipset.annun &= 0x003FFFF;
 
   // load initial pc and ssp
   ReadMEM((BYTE *)& Chipset.Cpu.PC, 0x000004, 4);
@@ -72,7 +72,7 @@ VOID SystemReset(VOID) {		// register settings after System Reset
 
   UpdateMainDisplay(TRUE);			// refresh whole screen
   hpib_names();					// display lif names
-  UpdateAnnunciators(TRUE);			// update all annutiators
+  UpdateLeds(TRUE);			        // update all annutiators
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -217,8 +217,8 @@ BYTE WriteMEM(BYTE *a, DWORD d, BYTE s) {
   if (ad <= (unsigned)(0x002FFFFF-s)) {		// ROM (up to $2FFFFF) for 9837 ...
     while (s) {
       if (s & 0x01) {
-	Chipset.annun &= 0x001FFFF;
-	Chipset.annun |= (~(*(--a))) << 17;	// low byte is diagnostic leds
+	Chipset.annun &= 0x0007FF;
+	Chipset.annun |= (~(*(--a))) << 11;	// low byte is diagnostic leds
       }
       s--;
     }

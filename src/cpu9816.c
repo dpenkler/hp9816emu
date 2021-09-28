@@ -284,7 +284,7 @@ UINT SwitchToState(UINT nNewState) {
   }
   Chipset.annun &= ~1;
   Chipset.annun |= (nState==SM_RUN);
-  UpdateAnnunciators(FALSE);
+  UpdateLeds(FALSE);
   return nOldState;
 }
 
@@ -312,7 +312,7 @@ void *CpuEmulator(void * targ) {
   while (nNextState == SM_RUN) {
     if (nState != SM_RUN) {
       nState = SM_RUN;
-      UpdateAnnunciators(FALSE);
+      UpdateLeds(FALSE);
 
       if (Chipset.keeptime) SetHPTime();	// update HP time & date
 
@@ -327,11 +327,10 @@ void *CpuEmulator(void * targ) {
     while (!bInterrupt) {
       Chipset.dcycles = 0;
       EvalOpcode(newI210);	// execute opcode with interrupt if needed
-      Chipset.cycles += (DWORD)(Chipset.dcycles);
+      Chipset.cycles  += (DWORD)(Chipset.dcycles);
       Chipset.ccycles += (DWORD)(Chipset.dcycles);
-
+      cpuCycles       += Chipset.dcycles;
       if (Chipset.Cpu.reset) {
-	if (szRomFileName[0]) MapRom(szRomFileName); // reload rom in case it got hosed
 	Chipset.Cpu.reset = 0;
 	Reset_Keyboard();
       }

@@ -20,20 +20,21 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 
 /* Globals */
 
 BOOL        bAutoSave = FALSE;
 BOOL        bAutoSaveOnExit = FALSE;
-BOOL        bAlwaysDisplayLog = TRUE;
+BOOL        bDisplayLog = TRUE;
 int         bFPU = TRUE;
 int         bRamInd = 1; // 512K
 #define     MEM_SZ_CNT 6
 // Memory sizes in KB last entry 8MB-512KB
 int         memSizes[MEM_SZ_CNT] = {256, 512, 1024, 2048, 4096, 7680}; 
+volatile unsigned int cpuCycles;
 static char memDisp[64];
 int         bKeeptime = TRUE;
 pthread_t   cpuThread = 0;
@@ -41,8 +42,6 @@ Window      hWnd=0;
 
 static int OnKey(int,unsigned int, int);
 static int OnMouseWheel(UINT nFlags, WORD x, WORD y);
-static int OnLButtonDown(UINT nFlags, WORD x, WORD y);
-static int OnLButtonUp(UINT nFlags, WORD x, WORD y);
 static int OnFileSaveAs(VOID);
 static void emuSetEvents(EZ_Widget *);
 
@@ -56,6 +55,9 @@ static EZ_Widget *seButton = NULL;     /* settings button          */
 static EZ_Widget *memSel;              /* memory size selector     */
 static EZ_Widget *fpuBtn;
 static EZ_Widget *timBtn;
+static EZ_Widget *mhzLed;
+static EZ_Widget *fpuLed;
+static EZ_Widget *memLabel;
 /* Speed menu */
 static EZ_Widget *spButton = NULL;     /* speed selector button    */
 static EZ_Widget *speedMenu = NULL;    /* speed setting menu       */
@@ -69,6 +71,14 @@ static int        siMenuPosted = 0;    /* sys img menu posted flag */
 static char       imageFile[256];      /* image file name          */
 /* Run button */
 static EZ_Widget *runBtn;
+/* Disk type labels */
+static EZ_Widget *diskLabels[4]; /* 9121,9122,7908,7908 */
+/* Unit/LIF volume labels */
+static EZ_Widget *volumeLabels[6]; /* 700,0 700,1 702,0 702,1 703,0 704,0 */
+/* Leds */
+static EZ_Widget *leds[11]; /* Run 700 700,0 700,1 702 702,0 702,1 703 703,0 704 704,0 */
+/* CPU Status leds */
+static EZ_Widget *cpuStatus;
 
 /* Display variables */
 static EZ_Widget *workArea;            /* the 9816 display area    */
@@ -85,6 +95,8 @@ void emuFlush() {
 
 static int oldop = -1; 
 void emuBitBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, Pixmap src, int sx0, int sy0, int op) {
+  //fprintf(stderr,"emuBitBlt %ld  %ld\n",(long) dst, (long) src);
+
   if (op != oldop) {
     oldop = op;
     XSetFunction(dpy, drawGC, op );
@@ -94,7 +106,8 @@ void emuBitBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, Pixmap src, int sx0
 
 
 void emuPatBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, int op) {
-  if (op != oldop) {
+  // fprintf(stderr,"emuPatBlt %ld  ",(long) dst);
+ if (op != oldop) {
     oldop = op;
     XSetFunction(dpy, drawGC, op );
   }
@@ -102,7 +115,8 @@ void emuPatBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, int op) {
 }
 
 
-void emuPutImage(Pixmap dst,int x0, int y0, int w, int h, XImage *src, int op) {	    
+void emuPutImage(Pixmap dst,int x0, int y0, int w, int h, XImage *src, int op) {
+  fprintf(stderr,"emuPutImage %ld  %ld\n",(long) dst, (long) src);	    
   if (op != oldop) {
     oldop = op;
     XSetFunction(dpy, drawGC, op );
@@ -113,7 +127,7 @@ void emuPutImage(Pixmap dst,int x0, int y0, int w, int h, XImage *src, int op) {
 
 Pixmap emuCreateBitMap(int w, int h) {
   Pixmap imagePixmap=0;
-  //fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
+  fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
   imagePixmap = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
   return imagePixmap;
 }
@@ -121,7 +135,7 @@ Pixmap emuCreateBitMap(int w, int h) {
 Pixmap emuLoadBitMap(LPCTSTR fn) {
   unsigned int w,h;
   Pixmap imagePixmap=0;
-  //fprintf(stderr,"emuLoadImage %s\n",fn);
+  fprintf(stderr,"emuLoadImage %s\n",fn);
   EZ_CreateXPixmapFromImageFile((char *)fn, &w, &h, &imagePixmap);
   return imagePixmap;
 }
@@ -133,6 +147,7 @@ void emuFreeBitMap(Pixmap bm) {
 XImage *emuCreateImage(int x, int y) {
   char *img;
   img = malloc(x*y*4);
+  fprintf(stderr,"emuCreateImage %d %d\n",x,y);
   return XCreateImage(dpy, EZ_GetVisual() ,EZ_GetDepth(), ZPixmap,
 		      0, img, x, y, 32, 0);
 }
@@ -154,30 +169,26 @@ static void hp9816emuComputeSize(EZ_Widget *widget, int *w, int *h) {
    * figure out the minimal size.
    */
   *w = bgW; *h = bgH;  
-  printf("hp9816emuComputeSize %d %d\n",bgW,bgH);
+  //  fprintf(stderr,"hp9816emuComputeSize %d %d\n",bgW,bgH);
 }
 
 static void hp9816emuDraw(EZ_Widget *widget) {
   RECT rc;
-
+  fprintf(stderr,"hp9816emuDraw\n");
   rc.left = rc.top = 0;
   rc.bottom = bgH;
   rc.right  = bgW;
   if (!emuInit) {
     hWnd = EZ_GetWidgetWindow(widget); /* widget window */
+    XSetFunction(dpy, drawGC, GXclear);
+    XFillRectangle(dpy, hWnd, drawGC,  0, 0, bgW, bgH);
     XMapWindow(dpy, hWnd);
     emuSetEvents(widget);
     emuInit = 1;
     return;
-  }
-  if (hMainBM) { /* background image loaded */
-    // redraw background image
-    emuBitBlt(hWnd, 0, 0, bgW, bgH, hMainBM, 0, 0, GXcopy );
+  } else {
     // redraw main display area
     Refresh_Display(TRUE);
-    hpib_names();
-    UpdateAnnunciators(TRUE); 
-    RefreshButtons(&rc);
   }
 }
 
@@ -187,6 +198,7 @@ static void hp9816emuFreeData(EZ_Widget *widget) {
 static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
   int x,y;
   if (!event) return;
+  //fprintf(stderr,"hp9816emuEventHandler\n");
   switch (event->type) {
   case Expose: hp9816emuDraw(widget); break;
   case ButtonPress:
@@ -194,7 +206,6 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
     y = event->xbutton.y;
     //fprintf(stderr,"Button press %d\n",event->xbutton.button);
     switch (event->xbutton.button) {
-    case Button1: OnLButtonDown(1,x,y);  EZ_SetFocusTo(workArea); break;
     case Button4: OnMouseWheel(-1,x,y); break;
     case Button5: OnMouseWheel( 1,x,y); break;
     default:;
@@ -205,7 +216,6 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
     y = event->xbutton.y;
   //fprintf(stderr,"Button Release %d\n",event->xbutton.button);
     switch (event->xbutton.button) {
-    case Button1: OnLButtonUp(1,x,y); break;
     case Button4: OnMouseWheel(-1,x,y); break;
     case Button5: OnMouseWheel( 1,x,y); break;
     default:;
@@ -221,13 +231,40 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
   //EZ_CallWidgetMotionCallbacks(widget);
 }
 
+static double tstart = 0.0;
+static int tfpu = 0;
+static int tmem = 0;
+static void timerCB(EZ_Timer *t, void *p) {
+  struct timeval tv;
+  int lfpu;
+  double mtime,itime,ticks,mhz;
+  char buf[64];
+
+  gettimeofday(&tv,NULL);
+  ticks = cpuCycles;
+  cpuCycles = 0;
+  mtime = tv.tv_sec*1e6L + tv.tv_usec;
+  if (tstart==0.0) tstart = mtime;
+  else {
+    itime  = mtime - tstart;
+    tstart = mtime;
+    mhz = ticks/itime;
+    sprintf(buf, " Freq:%5.1fMHz Mem:%5dK\n",mhz,Chipset.RamSize/1024);
+    EZ_SetLedString(mhzLed, buf, "green");
+    if (Chipset.Hp98635 != tfpu) {
+      tfpu = Chipset.Hp98635;
+      EZ_ConfigureWidget(fpuLed, EZ_LED_PIXEL_COLOR, (tfpu ? "green" : "gray20"), 0);
+    }
+  }
+}
+
 static void passThruEventHandler(EZ_Widget *w, void *d, int etype, XEvent *event) {
   if ((event->type == KeyPress) || (event->type == KeyRelease)) {
     hp9816emuEventHandler(workArea, event);
-    //    fprintf(stderr,"ptevh dropping event\n");
+    //fprintf(stderr,"ptevh dropping event\n");
     EZ_RemoveEvent(event);
   } else {
-    // fprintf(stderr,"ptevh calling next\n");
+    //fprintf(stderr,"ptevh calling next\n");
   }
 }
 
@@ -378,6 +415,7 @@ static void fpuCB(EZ_Widget *w, void *d) {
   int s;
   EZ_GetCheckButtonState(w,&s);
   bFPU = s;
+  fprintf(stderr, "bFPU now %d\n",bFPU);
 }
 
 static void cancelCB(EZ_Widget *widget, void *data) {
@@ -424,6 +462,43 @@ void emuInfoMessage(char *str) {
   EZ_SetGrab(toplevel);
   EZ_SetFocusTo(quit);
 }
+
+void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
+  char buf[64];
+  int col = 1;
+  int volId;
+  switch (hpibAddr) {
+  case 0: volId = unit;   break;
+  case 2: volId = 2+unit; break;
+  case 3: volId = 4;      break;
+  case 4: volId = 5;      break;
+  default:
+    fprintf(stderr,"emuUpdateButton: Invalid Add: %d unit %d\n", hpibAddr, unit);
+  }
+  fprintf(stderr,"Add: %d unit %d, volId %d vol <%s>\n", hpibAddr, unit, volId, lifVolume);
+  if (lifVolume[0] == 0x00) {
+    sprintf(buf,"Unit %d",unit);
+    lifVolume = buf;
+    col = 0;
+  }
+  EZ_ConfigureWidget(volumeLabels[volId],EZ_LABEL_STRING,lifVolume,0);
+    
+}
+
+void emuUpdateDisk(int diskNo, char * name) {
+  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
+}
+
+
+void emuUpdateLed(int id, int status) {
+  if (id < 11) {
+     EZ_ConfigureWidget(leds[id], EZ_LED_PIXEL_COLOR, (status ? "green" : "gray20"), 0);
+  } else {
+    id -= 11;
+    EZ_OnOffLedPixel(cpuStatus,2,id,0,status ? "red" : "gray20");
+  }
+}
+
 
 static void setupSpeedMenu() {
 
@@ -564,8 +639,6 @@ static int On9122Save(HPSS80 *ctrl, BYTE byUnit) {
     goto cancel;
   }
   _ASSERT(ctrl->name[byUnit][0] != 0x00);
-  if (!GetSaveDiskFilename(ctrl->name[byUnit]))
-    goto cancel;
   hp9122_save(ctrl, byUnit, szBufferFilename);
  cancel:
   return 0;
@@ -623,8 +696,6 @@ static int On9121Save(HP9121 *ctrl, BYTE byUnit) {
     goto cancel;
   }
   _ASSERT(ctrl->name[byUnit][0] != 0x00);
-  if (!GetSaveDiskFilename(ctrl->name[byUnit]))
-    goto cancel;
   hp9121_save(ctrl, byUnit, szBufferFilename);
  cancel:
   return 0;
@@ -682,8 +753,6 @@ static int On7908Save(HPSS80 *ctrl, BYTE byUnit) {
     goto cancel;
   }
   _ASSERT(ctrl->name[byUnit][0] != 0x00);
-  if (!GetSaveDiskFilename(ctrl->name[byUnit]))
-    goto cancel;
   hp7908_save(ctrl, byUnit, szBufferFilename);
  cancel:
   return 0;
@@ -885,6 +954,14 @@ static int OnFileClose(VOID) {
   return 0;
 }
 
+static void resetCB(EZ_Widget *widget, void *data) {
+  if (nState == SM_RUN) {
+    SwitchToState(SM_INVALID);
+    SystemReset();	
+    SwitchToState(SM_RUN);
+  }
+}
+
 static EZ_Widget *menus[7][6]; // indexed by nId => File, *H700, *H701, *H720, *H721, *H730, *H740
 
 static void setupMenus() {
@@ -927,7 +1004,7 @@ static void setupMenus() {
 				EZ_CALLBACK,                   OnFileClose,
 				NULL);
 
-  // Annunciator button menus
+  // Led button menus
   for (i=1; i<7 ; i++) {
     menus[i][0] = EZ_CreateWidget(EZ_WIDGET_MENU,      NULL,
 				  EZ_MENU_TEAR_OFF, 0,
@@ -944,8 +1021,7 @@ static void setupMenus() {
 					     EZ_LABEL_STRING,               "Save",
 					     EZ_UNDERLINE,                  0,
 					     EZ_CALLBACK,                   saveCB, i,
-					     NULL) :
-      NULL;
+					     NULL) : NULL;
 
     
     menus[i][3] = EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[i][0],
@@ -963,8 +1039,7 @@ static void setupMenus() {
 }
 
 static void setupMenuBar(EZ_Widget *mbar) {
-  EZ_Widget *menu, *tmp, *mitem, *fgmenu, *bgmenu;
-  int i = 0;
+  EZ_Widget *menu, *tmp, *frame;
 
   /* font menu */
 
@@ -1016,17 +1091,195 @@ static void setupMenuBar(EZ_Widget *mbar) {
 			   EZ_CALLBACK,  runCB, NULL,
 			   NULL);
 
+
+
+  mhzLed = EZ_CreateWidget(EZ_WIDGET_LED, mbar,
+			   EZ_LED_WIDTH,          200,
+			   EZ_LED_HEIGHT,         8,
+			   EZ_BORDER_WIDTH,       2,
+			   EZ_BORDER_TYPE,        EZ_BORDER_EMBOSSED,
+			   EZ_LED_PIXEL_SIZE,     1,1,
+			   EZ_LABEL_POSITION,     EZ_LEFT,
+			   EZ_LABEL_STRING,       " Starting...",
+			   EZ_LED_PIXEL_COLOR,    "black",
+			   EZ_GRID_CELL_GEOMETRY,  4, 0, 1, 1, 
+			   EZ_GRID_CELL_PLACEMENT, EZ_FILL_BOTH, EZ_CENTER,
+			   0);
+  
+  frame  = EZ_CreateWidget(EZ_WIDGET_FRAME, mbar,
+			   EZ_HEIGHT,             48,
+			   EZ_WIDTH,              48,
+			   EZ_BORDER_WIDTH,       1,
+			   EZ_BORDER_TYPE,        EZ_BORDER_EMBOSSED,
+			   EZ_FILL_MODE, EZ_FILL_BOTH,
+			   EZ_ORIENTATION, EZ_VERTICAL,
+			   EZ_SIDE, EZ_CENTER,
+			   EZ_GRID_CELL_GEOMETRY,  5, 0, 1, 1, 
+			   EZ_GRID_CELL_PLACEMENT, EZ_FILL_BOTH, EZ_CENTER,
+			   0);
+
+   tmp   =   EZ_CreateWidget(EZ_WIDGET_LABEL,    frame,
+			     EZ_PADY,            0,
+			     EZ_BORDERWIDTH,     0,
+			     EZ_LABEL_STRING,    "FPU",
+			     EZ_TEXT_LINE_LENGTH, 3,
+			     EZ_JUSTIFICATION,    EZ_LEFT,
+			     NULL);  
+
+  fpuLed = EZ_CreateWidget(EZ_WIDGET_LED,         frame,
+			   EZ_HEIGHT,             16,
+			   EZ_WIDTH,              16,
+			   EZ_LED_WIDTH,          1,
+			   EZ_LED_HEIGHT,         1,
+			   EZ_BORDER_WIDTH,       0,
+			   EZ_LED_PIXEL_SIZE,     15,15 ,       /* 64 is the largest */
+			   EZ_INDICATOR_TYPE,     1,        /* shaded balls    */
+			   EZ_BACKGROUND,         "gray74",
+			   EZ_LED_PIXEL_COLOR,    "gray20", /* off pixel color */
+			   EZ_LED_BACKGROUND, 	  "gray74",
+			   NULL);
+  
+
   tmp    = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  mbar,
 			   EZ_LABEL_STRING,         "Quit",
 			   EZ_WIDTH,                64,
 			   EZ_BORDER_WIDTH,         4,
 			   EZ_BORDER_TYPE,          EZ_BORDER_SHADOW3,
 			   EZ_INDICATOR_TYPE,       EZ_EMPTY_INDICATOR,
-			   EZ_GRID_CELL_GEOMETRY,   9, 0, 1, 1,
+			   EZ_GRID_CELL_GEOMETRY,   6, 0, 1, 1,
 			   EZ_GRID_CELL_PLACEMENT,  EZ_FILL_BOTH, EZ_CENTER,
 			   EZ_CALLBACK,             quitCB, NULL,
 			   NULL);
     
+}
+
+static int ledId = 1;
+EZ_Widget *emuCreateLed(EZ_Widget *frame) {
+  EZ_Widget *led;
+  led =  EZ_CreateWidget(EZ_WIDGET_LED,         frame,
+			 EZ_HEIGHT,             16,
+			 EZ_WIDTH,              16,
+			 EZ_LED_WIDTH,          1,
+			 EZ_LED_HEIGHT,         1,
+			 EZ_BORDER_WIDTH,       0,
+			 EZ_LED_PIXEL_SIZE,     15,15 ,       /* 64 is the largest */
+			 EZ_INDICATOR_TYPE,     0,
+			 EZ_BACKGROUND,         "gray74",
+			 EZ_LED_PIXEL_COLOR,    "gray20", /* off pixel color */
+			 EZ_LED_BACKGROUND,     "gray74",
+			 0);
+
+  leds[ledId++] = led;
+  return led;
+}
+
+static int volId = 0;
+
+static void emuCreateDisk(EZ_Widget *frame, char * diskType, char * hpibAddress, int nunits, int diskNo) {
+  EZ_Widget *tmp, *mframe, *lframe;
+
+  char buf[64];
+
+  mframe  = EZ_CreateWidget(EZ_WIDGET_FRAME,      frame,
+			    EZ_BORDER_WIDTH,       0,
+			    EZ_ORIENTATION, EZ_VERTICAL,
+			    EZ_PADY,               0,
+			    EZ_LABEL_STRING,    diskType,
+			    0);
+
+  diskLabels[diskNo] = mframe;
+ 
+  lframe  = EZ_CreateWidget(EZ_WIDGET_FRAME,      mframe,
+			    EZ_BORDER_WIDTH,       0,
+			    EZ_ORIENTATION,        EZ_HORIZONTAL,
+			    EZ_FILL_MODE,          EZ_FILL_HORIZONTALLY,
+			    0);
+ 
+  tmp =   emuCreateLed(lframe);
+
+  tmp   =   EZ_CreateWidget(EZ_WIDGET_LABEL,    lframe,
+			    EZ_PADX,            0,
+			    EZ_PADY,            0,
+			    EZ_BORDERWIDTH,     0,
+			    EZ_LABEL_STRING,    hpibAddress,
+			    EZ_JUSTIFICATION,    EZ_LEFT,
+			    NULL);
+  
+  for (int i=0;i<nunits;i++) {
+
+    lframe  = EZ_CreateWidget(EZ_WIDGET_FRAME,      mframe,
+			      EZ_BORDER_WIDTH,       1,
+			      EZ_BORDER_TYPE,        EZ_BORDER_EMBOSSED,
+			      EZ_ORIENTATION, EZ_HORIZONTAL,
+			      0);
+   
+    tmp =   emuCreateLed(lframe); 
+
+    sprintf(buf,"Unit %d",i);
+   
+    tmp   =   EZ_CreateWidget(EZ_WIDGET_MENU_BUTTON,    lframe,
+			      EZ_PADX,            0,
+			      EZ_PADY,            0,
+			      EZ_BORDERWIDTH,     3,
+			      EZ_BORDER_TYPE,     EZ_BORDER_RAISED,
+			      EZ_LABEL_STRING,    buf,
+			      //			     EZ_JUSTIFICATION,    EZ_LEFT,
+			      NULL);
+    volumeLabels[volId++] = tmp;
+    EZ_SetMenuButtonMenu(tmp, menus[volId][0]);
+  }
+
+}
+
+static void setupRightHandPanel(EZ_Widget *frame) {
+  EZ_Widget*topframe,*hpibframe,*lframe;
+
+  topframe = EZ_CreateWidget(EZ_WIDGET_FRAME,       frame,
+			     EZ_BORDER_WIDTH,       0,
+			     EZ_PADX,               0,
+			     EZ_ORIENTATION,        EZ_VERTICAL,
+			     0);
+
+
+  hpibframe = EZ_CreateWidget(EZ_WIDGET_FRAME,       topframe,
+			     EZ_BORDER_WIDTH,       1,
+			     EZ_BORDER_TYPE,        EZ_BORDER_FLAT,
+			     EZ_FILL_MODE,          EZ_FILL_NONE,
+			     EZ_PADX,               0,
+			     EZ_ORIENTATION,        EZ_VERTICAL,
+			     EZ_LABEL_STRING,       "HPIB",
+			     0);
+
+
+
+  
+  emuCreateDisk(hpibframe,"hp9121D","Addr:700", 2, 0);
+  emuCreateDisk(hpibframe,"hp9122D","Addr:702", 2, 1);
+  emuCreateDisk(hpibframe,"hp7908" ,"Addr:703", 1, 2);
+  emuCreateDisk(hpibframe,"hp7908" ,"Addr:704", 1, 3);
+
+  lframe  = EZ_CreateWidget(EZ_WIDGET_FRAME,      topframe,
+			    EZ_BORDER_WIDTH,       0,
+			    EZ_LABEL_STRING,       "CpuStatus",
+			    0);
+
+  cpuStatus = EZ_CreateWidget(EZ_WIDGET_LED,         lframe,
+			      EZ_LED_WIDTH,          8,
+			      EZ_LED_HEIGHT,         1,
+			      EZ_BORDER_WIDTH,       2,
+			      EZ_BORDER_TYPE,        EZ_BORDER_FLAT,
+			      EZ_LED_PIXEL_SIZE,     12,12,
+			      EZ_FOREGROUND,         "green",
+			      NULL);
+  
+  EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON, topframe,
+		  EZ_PADX,           0,
+		  EZ_PADY,           0,
+		  EZ_LABEL_STRING,   "Reset",
+		  EZ_FOREGROUND,     "Red",
+		  EZ_CALLBACK,        resetCB, NULL,
+		  NULL );
+  
 }
 
 void SetWindowTitle(char *Title) {
@@ -1108,18 +1361,6 @@ VOID UpdateWindowStatus(VOID)  {
 }
 
 //
-// ID_VIEW_RESET
-//
-static int OnViewReset(VOID) {
-  if (nState == SM_RUN) {
-    SwitchToState(SM_INVALID);
-    SystemReset();			// Chipset setting after power cycle
-    SwitchToState(SM_RUN);
-  }
-  return 0;
-}
-
-//
 // Mouse wheel handler
 //
 static int OnMouseWheel(UINT clicks, WORD x, WORD y) {
@@ -1131,18 +1372,6 @@ static int OnMouseWheel(UINT clicks, WORD x, WORD y) {
   return 0;
 }
 
-// 
-// Keyboard handler
-//
-static int OnLButtonDown(UINT nFlags, WORD x, WORD y) {
-  if (nState == SM_RUN) MouseButtonDownAt(nFlags, x,y); 
-  return 0;
-}
-
-static int OnLButtonUp(UINT nFlags, WORD x, WORD y) {
-  if (nState == SM_RUN) MouseButtonUpAt(nFlags, x,y); 
-  return 0;
-}
 
 // for key up/down 
 static int OnKey(int down, unsigned int keycode, int state) {
@@ -1184,8 +1413,7 @@ static int OnKey(int down, unsigned int keycode, int state) {
  VOID ButtonEvent(BOOL state, UINT nId, int x, int y) {
    //  fprintf(stderr,"Button event: state %d, Id %d\n",state,nId);
   if (state == TRUE) return;
-  if (nId == 1) OnViewReset();
-  else if (nId >= 2 && nId <=7)  EZ_DoPopup(menus[nId-1][0], EZ_BOTTOM_RIGHT);
+  if (nId >= 2 && nId <=7)  EZ_DoPopup(menus[nId-1][0], EZ_BOTTOM_RIGHT);
 }
 
 int main(int ac, char **av) {
@@ -1199,19 +1427,18 @@ int main(int ac, char **av) {
   EZ_Initialize(ac, av, 0);
 
   toplevel  = EZ_CreateWidget(EZ_WIDGET_FRAME,   NULL,
-			   // EZ_SIZE,           864, 640,
-			   EZ_PADX,           0,
-			   EZ_PADY,           0,
-			   EZ_FILL_MODE,      EZ_FILL_BOTH,
-			   EZ_ORIENTATION, EZ_VERTICAL_TOP,
-			   EZ_WM_WINDOW_NAME, "hp9816emu",
-			   0);
+			      EZ_PADX,           0,
+			      EZ_PADY,           0,
+			      EZ_FILL_MODE,      EZ_FILL_HORIZONTALLY,
+			      EZ_ORIENTATION, EZ_VERTICAL,
+			      EZ_WM_WINDOW_NAME, "hp9816emu",
+			      0);
 
   mbar =  EZ_CreateWidget(EZ_WIDGET_FRAME, toplevel,
 			  EZ_PADX,                0,
 			  EZ_PADY,                0,
 			  EZ_GRID_CONSTRAINS,    EZ_ROW,      1,     300,  10,   0, 
-			  EZ_GRID_CONSTRAINS,    EZ_COLUMN,   8,    200,  10,   0, 
+			  EZ_GRID_CONSTRAINS,    EZ_COLUMN,   4,    200,  10,   0, 
 			  NULL);
 
   setupMenus();
@@ -1225,17 +1452,17 @@ int main(int ac, char **av) {
   setupFileSelector();
 
   frame = EZ_CreateWidget(EZ_WIDGET_FRAME,   toplevel,
-			  EZ_SIZE,           864+16,600+16,
 			  EZ_PADX,           0,
 			  EZ_PADY,           0,
 			  EZ_BORDER_TYPE,    EZ_BORDER_SUNKEN,
 			  EZ_BORDER_WIDTH,   8,
-			  EZ_FILL_MODE,      EZ_FILL_BOTH,
-			  EZ_ORIENTATION,    EZ_HORIZONTAL_LEFT,
+			  EZ_FILL_MODE,      EZ_FILL_NONE,
+			  EZ_ORIENTATION,    EZ_HORIZONTAL,
 			  0);
 
+  
   workArea = EZ_CreateWidget(EZ_WIDGET_RAW_XWINDOW, frame,
-			     EZ_WIDTH,  864,
+			     EZ_WIDTH,  800,
 			     EZ_HEIGHT, 600,
 			     //	     EZ_WINDOW_DEPTH, 8,
 			     EZ_SIDE, EZ_LEFT,
@@ -1248,8 +1475,14 @@ int main(int ac, char **av) {
 			hp9816emuEventHandler);
 
 
+  setupRightHandPanel(frame);
+
   dpy    = EZ_GetDisplay();            /* display   */
   drawGC = EZ_GetGC(0L,&gcvalues);
+
+  
+  /* Timer for Mhz and mem display update */
+  EZ_Timer *mTimer = EZ_CreateTimer(1,0,-1,timerCB,toplevel,0);
 
   EZ_DisplayWidget(frame);
 
@@ -1270,6 +1503,7 @@ int main(int ac, char **av) {
   nNextState = SM_INVALID;		// go into invalid state
   pthread_create(&cpuThread,NULL,&CpuEmulator,NULL);
 
+  
   while (nState!=nNextState) usleep(10000);  // wait for thread initialized
 
   if (ac == 2)	{			// use decoded parameter line

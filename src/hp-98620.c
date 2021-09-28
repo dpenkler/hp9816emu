@@ -10,7 +10,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 #include "mops.h"								// I/O definitions
 
 #define DEBUG_98620						// debug flag

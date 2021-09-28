@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "kml.h"
 
 #define DELAY_CMD 50				// delay for command response
 
@@ -233,7 +232,7 @@ BOOL hp9121_push_d(VOID *controler, BYTE d, BYTE eoi) {	// push on stack ctrl->h
 //   FSA to simulate the disctrl->c controller (Amigo protocol)
 //
 
-static BYTE leds[] = {2, 0, 7};
+static BYTE leds[] = {2, 0, 3};
 
 VOID DoHp9121(HP9121 *ctrl) {
 #if defined DEBUG_HP9121
@@ -247,16 +246,16 @@ VOID DoHp9121(HP9121 *ctrl) {
 #endif
 
   if (ctrl->st9121 > 1) {
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 0 * 2));		// unit 0
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 * 2));		// unit 1
-    Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + ctrl->unit * 2));
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 0 * 2]));		// unit 0
+    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 1 * 2]));		// unit 1
+    Chipset.annun |= (1 << (leds[ctrl->hpibaddr + ctrl->unit * 2]));
   }
 
   switch (ctrl->st9121) {
       // IDLE STATE
     case 0:
-      Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 0 * 2));		// unit 0
-      Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 * 2));		// unit 1
+      Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 0 * 2]));		// unit 0
+      Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr + 1 * 2]));		// unit 1
       ctrl->st9121++;
       break;
     case 1:
@@ -485,11 +484,11 @@ VOID DoHp9121(HP9121 *ctrl) {
 	  if (pop_d(ctrl, &ctrl->c, &eoi))
 	    {
 	      ctrl->disk[ctrl->unit][ctrl->addr[ctrl->unit]++] = ctrl->c;
-	      if ((ctrl->addr[ctrl->unit] & 0xFF) == 0x00)					// one sector done
+	      if ((ctrl->addr[ctrl->unit] & 0xFF) == 0x00)			      // one sector done
 		{
 		  if (ctrl->addr[ctrl->unit] == 0x00000100) {
 		    GetLifName(ctrl, ctrl->unit);
-		    kmlButtonText6(1 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+		    emuUpdateButton(ctrl->hpibaddr, ctrl->unit, ctrl->lifname[ctrl->unit]);
 		  }
 		  if (ctrl->unbuffered) {
 		    inc_addr(ctrl, ctrl->unit);
@@ -1186,11 +1185,8 @@ BOOL hp9121_load(HP9121 *ctrl, BYTE unit, LPCTSTR szFilename) {
 
   strcpy(ctrl->name[unit], szFilename);
 
-  Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + unit * 2));
-  UpdateAnnunciators(FALSE);
-
   GetLifName(ctrl, unit);
-  kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19); // 6 bytes of text -16,16 pixels down of buttons 2 or 3
+  emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
 
   return TRUE;
 }
@@ -1223,11 +1219,8 @@ BOOL hp9121_eject(HP9121 *ctrl, BYTE unit) {
   ctrl->name[unit][0] = 0x00;
   ctrl->disk[unit] = NULL;
 
-  Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr]+ 1 + unit * 2));
-  UpdateAnnunciators(FALSE);
-
   ctrl->lifname[unit][0] = 0x00;
-  kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+  emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
 
   return TRUE;
 }
@@ -1262,10 +1255,8 @@ VOID hp9121_reset(VOID *controler) {
     if (ctrl->name[i][0] != 0x00) {
       hp9121_load(ctrl, i, ctrl->name[i]);
     }
-    if (ctrl->name[i][0] != 0x00) {
-      Chipset.annun |= (1 << (leds[ctrl->hpibaddr] + 1 + ctrl->unit * 2));
-    } else {
-      Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr] + 1 + ctrl->unit * 2));
+    if (ctrl->name[i][0] == 0x00) {
+      emuUpdateButton(ctrl->hpibaddr, i ,"");
     }
     ctrl->head[i] = 0;
     ctrl->cylinder[i] = 0;
@@ -1298,10 +1289,7 @@ VOID hp9121_stop(VOID *controler) {
       free(ctrl->disk[unit]);
     ctrl->disk[unit] = NULL;
 
-    Chipset.annun &= ~(1 << (leds[ctrl->hpibaddr]+ 1 + unit * 2));
-    UpdateAnnunciators(FALSE);
-
     ctrl->lifname[unit][0] = 0x00;
-    kmlButtonText6(1 + ctrl->hpibaddr + unit, ctrl->lifname[unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+    emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
   }
 }

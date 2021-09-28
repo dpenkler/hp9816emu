@@ -409,7 +409,7 @@ typedef struct {
   DWORD	addr[2];			// current address in data
   LPBYTE disk[2];			// pointer to data
   BYTE	new_medium[2];			// when a new medium is inserted
-  BYTE	lifname[2][8];
+  char	lifname[2][8];
   TCHAR	name[2][MAX_PATH];		// 2 units max
 } HPSS80;
 
@@ -453,7 +453,7 @@ typedef struct {
 
   BOOL	ppol_e;		// parallel poll enabled
 
-  BYTE	lifname[2][8];	// name of lif volume in drive
+  char	lifname[2][8];	// name of lif volume in drive
   TCHAR	name[2][MAX_PATH]; // 2 units max
 } HP9121;
 
