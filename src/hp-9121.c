@@ -13,7 +13,7 @@
 //   ROM320_P1.pdf from André Koppel
 //
 //   emulate 9121 double unit, 9895A double unit (and 9134 as 1 huge unit) 
-//      type   0,               1,                  2 
+//	type   0,		1,		    2 
 
 #include "common.h"
 #include "hp9816emu.h"
@@ -65,11 +65,11 @@ static TCHAR *HP9121_LAB(WORD d)			// find a label for the state d
 // hp9121 variables
 
 #define DISK_BYTES ((ctrl->config_heads * ctrl->config_cylinders * ctrl->config_sectors) << 8)
-// 0x01,0x04 ->    2,       33,     32
-// 0x00,0x81 ->    2,       75,     60
-// 0x01,0x06 ->    4,      153,    124
-//              is 4 unit of 2, 306, 31
-//              head, cylinder, sect/cylinder (include head)
+// 0x01,0x04 ->	   2,	    33,	    32
+// 0x00,0x81 ->	   2,	    75,	    60
+// 0x01,0x06 ->	   4,	   153,	   124
+//		is 4 unit of 2, 306, 31
+//		head, cylinder, sect/cylinder (include head)
 //################
 //#
 //#    Low level subroutines
@@ -106,12 +106,9 @@ static VOID GetLifName(HP9121 *ctrl, BYTE unit) {
 }
 
 static VOID raj_addr(HP9121 *ctrl, BYTE u) {
-  while (ctrl->sector[u] >= ctrl->config_sectors)
-    ctrl->sector[u] -= ctrl->config_sectors;
-  while (ctrl->head[u] >= ctrl->config_heads)
-    ctrl->head[u] -= ctrl->config_heads;
-  while (ctrl->cylinder[u] >= ctrl->config_cylinders)
-    ctrl->cylinder[u] -= ctrl->config_cylinders;
+  while (ctrl->sector[u] >= ctrl->config_sectors)     ctrl->sector[u] -= ctrl->config_sectors;
+  while (ctrl->head[u] >= ctrl->config_heads)	      ctrl->head[u] -= ctrl->config_heads;
+  while (ctrl->cylinder[u] >= ctrl->config_cylinders) ctrl->cylinder[u] -= ctrl->config_cylinders;
   ctrl->addr[u] = (ctrl->sector[u] + 
 		   ctrl->head[u] * ctrl->config_sectors + 
 		   ctrl->cylinder[u] * ctrl->config_heads * ctrl->config_sectors
@@ -120,22 +117,20 @@ static VOID raj_addr(HP9121 *ctrl, BYTE u) {
 
 static VOID inc_addr(HP9121 *ctrl, BYTE u) {
   ctrl->sector[u]++;
-  if (ctrl->sector[u] >= ctrl->config_sectors)  {
+  if (ctrl->sector[u] >= ctrl->config_sectors)	{
     ctrl->sector[u] = 0;
     ctrl->head[u]++;
     if (ctrl->head[u] >= ctrl->config_heads)	{
       ctrl->head[u] = 0;
       ctrl->cylinder[u]++;
-      if (ctrl->cylinder[u] >= ctrl->config_cylinders)
-	ctrl->cylinder[u] = 0;	// wrap
+      if (ctrl->cylinder[u] >= ctrl->config_cylinders)	ctrl->cylinder[u] = 0;	// wrap
     }
   }
   raj_addr(ctrl, u);
 }
 
 static BOOL pop_c(HP9121 *ctrl, BYTE *c) {
-  if (ctrl->hc_hi == ctrl->hc_lo)
-    return FALSE;
+  if (ctrl->hc_hi == ctrl->hc_lo)  return FALSE;
   if (ctrl->hc_t[ctrl->hc_lo] != 0) {		// wait more
     ctrl->hc_t[ctrl->hc_lo]--;
     return FALSE;
@@ -146,9 +141,8 @@ static BOOL pop_c(HP9121 *ctrl, BYTE *c) {
 }
 
 static BOOL pop_d(HP9121 *ctrl, BYTE *c, BYTE *eoi) {
-  if (ctrl->hd_hi == ctrl->hd_lo)
-    return FALSE;
-  if (ctrl->hd_t[ctrl->hd_lo] != 0) {		// wait more
+  if (ctrl->hd_hi == ctrl->hd_lo)  return FALSE;
+  if (ctrl->hd_t[ctrl->hd_lo] != 0) {		// wait	 more
     ctrl->hd_t[ctrl->hd_lo]--;
     return FALSE;
   }
@@ -158,7 +152,7 @@ static BOOL pop_d(HP9121 *ctrl, BYTE *c, BYTE *eoi) {
   return TRUE;
 }
 
-BOOL hp9121_push_c(VOID *controler, BYTE c) {           	// push on stack ctrl->hc
+BOOL hp9121_push_c(VOID *controler, BYTE c) {			// push on stack ctrl->hc
 
   HP9121 *ctrl = (HP9121 *) controler;				// cast controler
 	
@@ -167,7 +161,7 @@ BOOL hp9121_push_c(VOID *controler, BYTE c) {           	// push on stack ctrl->
   if (c == 0x20 + ctrl->hpibaddr) {				// my listen address
     ctrl->listen = TRUE;
     ctrl->untalk = FALSE;
-  } else if (c == 0x40 + ctrl->hpibaddr) {		        // my talk address
+  } else if (c == 0x40 + ctrl->hpibaddr) {			// my talk address
     ctrl->talk = TRUE;
     ctrl->untalk = FALSE;
   } else if (c == 0x3F) {					// unlisten
@@ -296,8 +290,7 @@ VOID DoHp9121(HP9121 *ctrl) {
 	    break;
 	  }
       } else if (ctrl->listen) {
-	switch(ctrl->c)
-	  {
+	switch(ctrl->c)  {
 	  case 0x60:					// secondary 0x00	: Receive data
 	    ctrl->ppol_e = FALSE;
 	    ctrl->st9121 = 10000;
@@ -342,7 +335,7 @@ VOID DoHp9121(HP9121 *ctrl) {
 	    break;
 	  default:
 	    _ASSERT(0);
-	    ctrl->st9121 = 0;		// restart
+	    ctrl->st9121 = 0;				// restart
 	    break;
 	  }
       }
@@ -415,7 +408,7 @@ VOID DoHp9121(HP9121 *ctrl) {
 	    case 0x0B:					// op 0x0B : Initialize
 	      ctrl->st9121 = 12500;
 	      break;
-	    case 0x0C:					// op 0x0C : Set Address Record (for 9133) same as seel without any moving 
+	    case 0x0C:					// op 0x0C : Set Address Record (for 9133) same as seek without any moving 
 	      ctrl->st9121 = 11200;
 	      break;
 	    case 0x14:					// op 0x14 : Request logical address
@@ -578,10 +571,10 @@ VOID DoHp9121(HP9121 *ctrl) {
 	  }
 	} else {					// no unit
 	  ctrl->dsj = 1;
-	  ctrl->s1[0] = 0x17;				// 00dSSSSS 	unit unavailable
+	  ctrl->s1[0] = 0x17;				// 00dSSSSS	unit unavailable
 	  ctrl->s1[1] = (BYTE) ctrl->d;			// unit
 	  ctrl->s2[0] = 0x00;				// *TTTTR    
-	  ctrl->s2[1] = 0x00;				// AW/EFCSS 	no drive connected
+	  ctrl->s2[1] = 0x00;				// AW/EFCSS	no drive connected
 	}
 	ctrl->ppol_e = TRUE;
 	ctrl->st9121 = 0;
@@ -706,19 +699,19 @@ VOID DoHp9121(HP9121 *ctrl) {
 	    ctrl->s1[0] = 0;
 	    ctrl->s1[1] = ctrl->unit;
 	    ctrl->dsj = 0;
-	  } else {								// no disk
+	  } else {					// no disk
 	    ctrl->dsj = 1;
-	    ctrl->s1[0] = 0x13;					// 00dSSSSS : 00010011
+	    ctrl->s1[0] = 0x13;				// 00dSSSSS : 00010011
 	    ctrl->s1[1] = ctrl->unit;			// unit
-	    ctrl->s2[0] = 0x0D;					// *TTTTR     00001101
-	    ctrl->s2[1] = 0x03;					// AW/EFCSS   00000011
+	    ctrl->s2[0] = 0x0D;				// *TTTTR     00001101
+	    ctrl->s2[1] = 0x03;				// AW/EFCSS   00000011
 	  }
-	} else {									// no unit
+	} else {					// no unit
 	  ctrl->dsj = 1;
-	  ctrl->s1[0] = 0x17;					// 00dSSSSS 		unit unavailable
-	  ctrl->s1[1] = ctrl->c;				// unit
-	  ctrl->s2[0] = 0x00;					// *TTTTR    
-	  ctrl->s2[1] = 0x00;					// AW/EFCSS   
+	  ctrl->s1[0] = 0x17;				// 00dSSSSS		unit unavailable
+	  ctrl->s1[1] = ctrl->c;			// unit
+	  ctrl->s2[0] = 0x00;				// *TTTTR    
+	  ctrl->s2[1] = 0x00;				// AW/EFCSS   
 	}
 	ctrl->ppol_e = TRUE;
 	ctrl->unbuffered = 0;
@@ -742,19 +735,19 @@ VOID DoHp9121(HP9121 *ctrl) {
 	    ctrl->s1[0] = 0;
 	    ctrl->s1[1] = 0;
 	    ctrl->dsj = 0;
-	  } else {								// no disk
+	  } else {					// no disk
 	    ctrl->dsj = 1;
-	    ctrl->s1[0] = 0x13;					// 00dSSSSS : 00010011
+	    ctrl->s1[0] = 0x13;				// 00dSSSSS : 00010011
 	    ctrl->s1[1] = ctrl->unit;			// unit
-	    ctrl->s2[0] = 0x0D;					// *TTTTR     00001101
-	    ctrl->s2[1] = 0x03;					// AW/EFCSS   00000011
+	    ctrl->s2[0] = 0x0D;				// *TTTTR     00001101
+	    ctrl->s2[1] = 0x03;				// AW/EFCSS   00000011
 	  }
-	} else {									// no unit
+	} else {					// no unit
 	  ctrl->dsj = 1;
-	  ctrl->s1[0] = 0x17;					// 00dSSSSS : 00010111		unit unavailable
-	  ctrl->s1[1] = ctrl->c;				// unit
-	  ctrl->s2[0] = 0x2D;					// *TTTTR     00100001
-	  ctrl->s2[1] = 0x82;					// AW/EFCSS   10000010		no drive connected
+	  ctrl->s1[0] = 0x17;				// 00dSSSSS : 00010111		unit unavailable
+	  ctrl->s1[1] = ctrl->c;			// unit
+	  ctrl->s2[0] = 0x2D;				// *TTTTR     00100001
+	  ctrl->s2[1] = 0x82;				// AW/EFCSS   10000010		no drive connected
 	}
 	ctrl->ppol_e = TRUE;
 	ctrl->unbuffered = 1;
@@ -805,10 +798,10 @@ VOID DoHp9121(HP9121 *ctrl) {
 	  }
 	} else {					// no unit
 	  ctrl->dsj = 1;
-	  ctrl->s1[0] = 0x17;				// 00dSSSSS 	unit unavailable
+	  ctrl->s1[0] = 0x17;				// 00dSSSSS	unit unavailable
 	  ctrl->s1[1] = ctrl->c;			// unit
 	  ctrl->s2[0] = 0x00;				// *TTTTR     
-	  ctrl->s2[1] = 0x00;				// AW/EFCSS 	no drive connected
+	  ctrl->s2[1] = 0x00;				// AW/EFCSS	no drive connected
 	}
 	ctrl->ppol_e = TRUE;
 	ctrl->unbuffered = 0;
@@ -843,7 +836,7 @@ VOID DoHp9121(HP9121 *ctrl) {
 	  ctrl->s1[0] = 0x17;				// 00dSSSSS :		unit unavailable
 	  ctrl->s1[1] = ctrl->c;			// unit
 	  ctrl->s2[0] = 0x00;				// *TTTTR    
-	  ctrl->s2[1] = 0x00;				// AW/EFCSS  	no drive connected
+	  ctrl->s2[1] = 0x00;				// AW/EFCSS	no drive connected
 	}
 	ctrl->ppol_e = TRUE;
 	ctrl->unbuffered = 1;
@@ -878,23 +871,23 @@ VOID DoHp9121(HP9121 *ctrl) {
       ctrl->st9121 = 0;
       break;
       // MLA & secondary 0C & 0x18 : format
-    case 16500:							// unit
+    case 16500:						// unit
       if (pop_d(ctrl, &ctrl->c, &eoi)) {
 	ctrl->d = ctrl->c;
 	ctrl->st9121++;
       }
       break;
-    case 16501:							// type
+    case 16501:						// type
       if (pop_d(ctrl, &ctrl->c, &eoi)) {
 	ctrl->st9121++;
       }
       break;
-    case 16502:							// interleave
+    case 16502:						// interleave
       if (pop_d(ctrl, &ctrl->c, &eoi)) {
 	ctrl->st9121++;
       }
       break;
-    case 16503:							// data
+    case 16503:						// data
       if (pop_d(ctrl, &ctrl->c, &eoi)) {
 	if (ctrl->d < 2) {
 	  ctrl->unit = (BYTE) ctrl->d;
@@ -1149,7 +1142,7 @@ VOID DoHp9121(HP9121 *ctrl) {
 }
 
 BOOL hp9121_load(HP9121 *ctrl, BYTE unit, LPCTSTR szFilename) {
-  INT   hDiskFile = -1;
+  INT	hDiskFile = -1;
   DWORD dwFileSize, dwRead;
   LPBYTE pDisk = NULL;
   struct stat rs;
@@ -1192,14 +1185,14 @@ BOOL hp9121_load(HP9121 *ctrl, BYTE unit, LPCTSTR szFilename) {
 }
 
 BOOL hp9121_save(HP9121 *ctrl, BYTE unit, LPCTSTR szFilename) {
-  INT   hDiskFile = -1;
+  INT	hDiskFile = -1;
   DWORD dwWritten;
 
   if (ctrl->disk[unit] == NULL)
     return FALSE;
 
   hDiskFile = creat(szFilename,O_WRONLY);
-  if (hDiskFile < 0)    {
+  if (hDiskFile < 0)	{
     hDiskFile = -1;
     return FALSE;
   }
@@ -1215,7 +1208,7 @@ BOOL hp9121_save(HP9121 *ctrl, BYTE unit, LPCTSTR szFilename) {
 }
 
 BOOL hp9121_eject(HP9121 *ctrl, BYTE unit) {
-  if (ctrl->disk[unit] != NULL)  free(ctrl->disk[unit]);
+  if (ctrl->disk[unit] != NULL)	 free(ctrl->disk[unit]);
   ctrl->name[unit][0] = 0x00;
   ctrl->disk[unit] = NULL;
 
