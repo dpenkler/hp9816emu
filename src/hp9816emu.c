@@ -465,7 +465,7 @@ void emuInfoMessage(char *str) {
 
 void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
   char buf[64];
-  int col = 1;
+  char * col = "red";
   int volId;
   switch (hpibAddr) {
   case 0: volId = unit;   break;
@@ -479,9 +479,9 @@ void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
   if (lifVolume[0] == 0x00) {
     sprintf(buf,"Unit %d",unit);
     lifVolume = buf;
-    col = 0;
+    col = "black";
   }
-  EZ_ConfigureWidget(volumeLabels[volId],EZ_LABEL_STRING,lifVolume,0);
+  EZ_ConfigureWidget(volumeLabels[volId],EZ_FOREGROUND, col, EZ_LABEL_STRING, lifVolume, 0);
     
 }
 

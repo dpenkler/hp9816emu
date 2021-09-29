@@ -1283,6 +1283,6 @@ VOID hp9121_stop(VOID *controler) {
     ctrl->disk[unit] = NULL;
 
     ctrl->lifname[unit][0] = 0x00;
-    emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
+    emuUpdateButton(ctrl->hpibaddr, unit, "");
   }
 }

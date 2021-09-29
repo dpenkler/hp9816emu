@@ -144,16 +144,16 @@ VOID hpib_names(VOID) {
     if (Chipset.Hp9121.lifname[0][0] != 0x00)
       emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, Chipset.Hp9121.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "Unit 0");
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "");
     if (Chipset.Hp9121.lifname[1][0] != 0x00)
       emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, Chipset.Hp9121.lifname[1]);
     else
-      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "Unit 1");
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "");
     Chipset.annun |= (1 << 1);
   } else {
     emuUpdateDisk(0, hpib_name[0]);
-    emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "Unit 0");
-    emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "Unit 1");
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "");
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "");
   }
   
   Chipset.annun &= ~(1 << 4);
