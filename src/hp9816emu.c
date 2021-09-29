@@ -1304,6 +1304,9 @@ VOID UpdateWindowStatus(VOID)  {
     EnableMenuItem(ID_FILE_CLOSE, (bRun && imageFile[0]));
     EZ_SetCheckButtonState(runBtn,uRun);
 
+    for (int i=0; i<volId; i++)
+      if (bRun) EZ_EnableWidget(volumeLabels[i]);
+      else      EZ_DisableWidget(volumeLabels[i]);
 
     // HPIB 700 drives
     if (Chipset.Hpib70x != 1) {
