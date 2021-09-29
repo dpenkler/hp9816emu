@@ -205,11 +205,11 @@ VOID SetHPTime(VOID)  {
 // adjust delay variables from speed settings
 //
 VOID SetSpeed(WORD speed) {			// set emulation speed
-  //fprintf(stderr,"Setting speed to %d\n",speed);
-  dwSpeedRef = getTime();		        // save reference time
+  fprintf(stderr,"Setting speed to %d\n",speed);
   switch (speed) {
   case 0:					// max speed
     dwOldCyc = Chipset.cycles;
+    dwSpeedRef = getTime();		        // save reference time
     break;
   default:
   case 1:					// 8MHz
@@ -363,8 +363,7 @@ void *CpuEmulator(void * targ) {
 	  DoTimers(Chipset.ccycles);
 	  Chipset.ccycles -= dwBaseRef;
 	}
-      if (bCpuSlow)			// emulation slow down
-	AdjustSpeed();			// adjust emulation speed 
+      if (bCpuSlow) AdjustSpeed();	// adjust emulation speed to required frequency 
     }
     bInterrupt = FALSE;			// be sure to reenter opcode loop
   }

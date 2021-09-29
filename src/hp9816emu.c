@@ -214,7 +214,7 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
   case ButtonRelease:
     x = event->xbutton.x;
     y = event->xbutton.y;
-  //fprintf(stderr,"Button Release %d\n",event->xbutton.button);
+    //fprintf(stderr,"Button Release %d\n",event->xbutton.button);
     switch (event->xbutton.button) {
     case Button4: OnMouseWheel(-1,x,y); break;
     case Button5: OnMouseWheel( 1,x,y); break;

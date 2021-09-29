@@ -831,7 +831,7 @@ VOID DoHp7908(HPSS80 *ctrl) {
       emuUpdateButton(ctrl->hpibaddr,ctrl->unit, ctrl->lifname[ctrl->unit]);
     }
     ctrl->address[ctrl->unit]++;
-    if (ctrl->count == ctrl->nbsector[ctrl->unit]) {						// last from sector sended
+    if (ctrl->count == ctrl->nbsector[ctrl->unit]) {		// last from sector sended
       if (ctrl->address[ctrl->unit] == disk_sectors[ctrl->type[0]])
 	ctrl->address[ctrl->unit] = 0;		// wrap
       ctrl->stss80 = 2302;			// prepare to read the next
@@ -881,8 +881,8 @@ VOID DoHp7908(HPSS80 *ctrl) {
     ctrl->addr[ctrl->unit] += ctrl->nbsector[ctrl->unit];
     if (ctrl->address[ctrl->unit] == 0x00000000) {
       ctrl->lifname[ctrl->unit][0] = 0x00;
-      // GetLifName(ctrl, ctrl->unit);
-      // emuUpdateButton(4 + ctrl->hpibaddr + ctrl->unit, ctrl->lifname[ctrl->unit], -12, 19);		// 6 bytes of text -16,16 pixels down of buttons 2 or 3
+      GetLifName(ctrl, ctrl->unit);
+      emuUpdateButton(ctrl->hpibaddr, ctrl->unit, ctrl->lifname[ctrl->unit]);
     }
     ctrl->address[ctrl->unit]++;
     if (ctrl->address[ctrl->unit] == disk_sectors[ctrl->type[0]])
@@ -1627,11 +1627,7 @@ VOID hp7908_reset(VOID *controler) {
   i = 0;
   if (ctrl->name[i][0] != 0x00) {
     hp7908_load(ctrl, i, ctrl->name[i]);
-    //		_ASSERT(ctrl->disk[i] != NULL);
-  }
-  if (ctrl->name[i][0] != 0x00) {
-    emuUpdateButton(ctrl->hpibaddr, ctrl->unit, "");
-  }
+  } else emuUpdateButton(ctrl->hpibaddr, i, "");
 
   ctrl->head[i] = 0;
   ctrl->cylinder[i] = 0;
@@ -1706,5 +1702,5 @@ VOID hp7908_stop(VOID *controler) {
   }
 
   ctrl->lifname[0][0] = 0x00;
-  emuUpdateButton(ctrl->hpibaddr, ctrl->unit, ctrl->lifname[0]);
+  emuUpdateButton(ctrl->hpibaddr, ctrl->unit,"");
 }

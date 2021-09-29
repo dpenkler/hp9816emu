@@ -24,18 +24,10 @@ TCHAR  szBufferFilename[MAX_PATH];
 // pointers for roms data
 LPBYTE pbyRom = NULL;
 
-
-// document signatures
+// System imgage signatures
 #define SignatureLength 32
 static BYTE pbySignature [SignatureLength] = "hp9816emu Configuration V1.0";
 static int hCurrentFile = -1;
-
-static TCHAR *szDiscType0[] = { _T("None"), _T("9121D"), _T("9895D"), _T("9122D"), _T("9134A")};
-static WORD wDiscType0Numbers = 5;
-static TCHAR *szDiscType2[] = { _T("None"), _T("9121D"), _T("9895D"), _T("9122D"), _T("9134A")};
-static WORD wDiscType2Numbers = 5;
-static TCHAR *szDiscType3[] = { _T("None"), _T("7908"), _T("7911"), _T("7912")};
-static WORD wDiscType3Numbers = 4;
 
 //################
 //#
@@ -196,6 +188,8 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
 
   Init_Keyboard();
 
+  SetSpeed(wRealSpeed);	// set speed
+  
   strcpy(szCurrentFilename, szFilename);
   hCurrentFile = hFile;
 
