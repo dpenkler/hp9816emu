@@ -30,14 +30,14 @@ $ make
 ## Running the emulator
 
 ```
-$ cd <path to hp9816emu>
+$ cd <path to hp9816emu directory>
 $ ./hp9816emu
 
 ```
 
 Press the **Run** button
 
-Load a disk image (e.g. Press on the 7908  *Unit 0* label in the right hand panel
+Load a disk image (e.g. Press on the 7908  **Unit 0** label in the right hand panel
 and load the dmpas.hpi disk image)
 
 
@@ -59,7 +59,9 @@ When a **Unit N** label is clicked a menu to manage the corresponding disk image
 
 ## Files
 
-### The font file is required in the current working directory for the emulator to work:
+### System files
+
+The font file is required in the current working directory for the emulator to work:
 
 * 9816FontW.ppm      - the characterset fonts in white
 
@@ -175,7 +177,7 @@ This LED is on when the FPU is enabled in the current system image
 
 ### Quit button
 
-When pressed the emulator terminates. If the autosave on exit flag setting is enabled the current system image is saved otherwise the image. If it was loaded from an existing image file that image file is updated. If it is a new system image it is saved into the default systme image file "system.img".
+When pressed the emulator terminates. If the autosave on exit flag setting is enabled the current system image is saved . If the current system image was loaded from an existing image file that image file is updated otherwise it is saved into the default system image file "system.img".
 
 ## Right hand panel
 
@@ -196,12 +198,11 @@ There is no RESET button on the keyboard. Click on the red button at the bottom 
 
 On the right hand panel there are 10 indicators
 
-
 The indicators in front of the different drive address labels Addr:70X are lit when the corresponding drive is "connected" to the HPIB bus.
 
 The indicators in front of the **Unit N** buttons flash when there is activity on the drive unit
 
-The H7XX button labels light red when there is a disk image associated with the drive unit. The LIF volume label appears below it.
+The **Unit N** button labels change to the LIF Volume label and light red when there is a disk image associated with the drive unit.
 
 The Leds above the red graphics reset button represent the CPU Status LEDs on the back of the 9816 CPU board.
 
