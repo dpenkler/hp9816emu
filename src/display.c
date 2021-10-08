@@ -32,6 +32,7 @@ XImage *hGraphImg;
 Pixmap	hScreenBM;
 
 GC	hGC[4];		// 4 GC's normal, inverse, half bright, hb inverse
+int     hGCop[4];       // currently active GC operation
 XGCValues gatt;
 unsigned long bg[3][4] = {
   {0x000000L, 0xffffffL, 0x000000L, 0x777777L}, // white
@@ -117,10 +118,11 @@ VOID CreateScreenBitmap(VOID)  {
   hScreenBM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
  
   for (int i=0; i< 4; i++) {
+    gatt.function  =  hGCop[i] = GXcopy;
     gatt.foreground = fg[2][i];
     gatt.background = bg[2][i];
     gatt.graphics_exposures = 0;
-    hGC[i] = XCreateGC(dpy, hWnd, GCForeground | GCBackground | GCGraphicsExposures, &gatt);
+    hGC[i] = XCreateGC(dpy, hWnd, GCFunction | GCForeground | GCBackground | GCGraphicsExposures, &gatt);
   }
   CD16.a_xmin = 0;
   CD16.a_xmax = CD16.alpha_width;
@@ -134,7 +136,6 @@ VOID CreateScreenBitmap(VOID)  {
     emuPutImage(hWnd, hGC[i], 0, i*24, 800, 24, xfontBM, 0, 0, GXcopy);
   }
   emuFlush();
-  
 }
 
 //
@@ -239,6 +240,10 @@ static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
     if (s & 0x08) gcind = 2 + (s & 0x01);	   // half bright + inverse?
     else if (s & 0x01) gcind = 1;		   // inverse video
     // copy the font bitmap part to alpha1 bitmap
+    if (hGCop[gcind] != op) {
+      XSetFunction(dpy,hGC[gcind],op);
+      hGCop[gcind] = op;
+    }
     emuPutImage(hAlpha1BM, hGC[gcind], x0, y0, CD.alpha_char_w, CD.alpha_char_h,
 		xfontBM, (int)(a) * CD.alpha_char_w, dy, op);
     xmax += CD.alpha_char_w;	// adjust max box
@@ -636,16 +641,17 @@ VOID UpdateMainDisplay(BOOL bForce) {
     case 2: op = (d & 0x0800) ? GXclear : GXcopy; break;    // keys off, text on
     default: op = GXcopy;				    // keys on, text on
     }
-    if (s & 0x04) dy += 4*CD.alpha_char_h;	// underline
-    if (s & 0x08) dy += 2*CD.alpha_char_h;	// half bright
-    if (s & 0x01) dy += CD.alpha_char_h;	// inverse video
     // FIXME if (s & 0x04) dy += CD.alpha_char_h;	   // underline
     gcind = 0;
     if (s & 0x08) gcind = 2 + (s & 0x01);	   // half bright + inverse?
     else if (s & 0x01) gcind = 1;		   // inverse video
+    if (hGCop[gcind] != op) {
+      XSetFunction(dpy,hGC[gcind],op);
+      hGCop[gcind] = op;
+    }
     emuPutImage(hAlpha1BM, hGC[gcind], x0, y0, CD.alpha_char_w, CD.alpha_char_h, 
-	      xfontBM, CD.alpha[dVid] * CD.alpha_char_w, dy,
-	      op);
+		xfontBM, CD.alpha[dVid] * CD.alpha_char_w, dy,
+		op);
     dVid += 2;
     dVid &= 0x0FFF;				// wrap at 4k
     x0 += CD.alpha_char_w;
