@@ -10,7 +10,7 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-#include "mops.h"								// I/O definitions
+#include "mops.h"						// I/O definitions
 
 #define DEBUG_98620						// debug flag
 
@@ -21,7 +21,7 @@ static	int k;
 
 // hp98626 controller variables
 
-static WORD st98620 = 0;								// state of hp98620 controller
+static WORD st98620 = 0;					// state of hp98620 controller
 
 //################
 //#

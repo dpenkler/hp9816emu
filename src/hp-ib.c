@@ -778,250 +778,249 @@ VOID DoHPIB(VOID) {
     }
   }
 
-  switch (sthpib)
-    {
-    case 0:									// IDLE STATE, wait
-      break;
-    case 1:									// do command
-      sc = (Chipset.Hpib.aux_cmd & 0x80) ? 1 : 0;				// set or clear ?
+  switch (sthpib)   {
+  case 0:									// IDLE STATE, wait
+    break;
+  case 1:									// do command
+    sc = (Chipset.Hpib.aux_cmd & 0x80) ? 1 : 0;				// set or clear ?
 #if defined DEBUG_HPIB
 #if defined DEBUG_HIGH
-      if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
+    if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-	k = wsprintf(buffer,_T("      : HPIB auxiliary : %02X = %s\n"), Chipset.Hpib.aux_cmd, HPIB_9114[((sc) ? 32 : 0) + (Chipset.Hpib.aux_cmd & 0x1F)]);
-	OutputDebugString(buffer); buffer[0] = 0x00;
+      k = wsprintf(buffer,_T("      : HPIB auxiliary : %02X = %s\n"), Chipset.Hpib.aux_cmd, HPIB_9114[((sc) ? 32 : 0) + (Chipset.Hpib.aux_cmd & 0x1F)]);
+      OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
-      }
-#endif
-#endif
-#if defined DEBUG_HPIB
-#if defined DEBUG_HIGH
-      if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
-#endif
-	k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
-	OutputDebugString(buffer); buffer[0] = 0x00;
-#if defined DEBUG_HIGH
-      }
-#endif
-#endif
-      Chipset.Hpib.gts = 0;
-      switch(Chipset.Hpib.aux_cmd & 0x1F) {
-      case 0x00:							// swrst (cs) software reset
-	Chipset.Hpib.a_swrst = sc;
-	if (Chipset.Hpib.a_swrst) {
-	  //						h_out_hi = 0;				
-	  //						h_out_lo = 0;
-	  Chipset.Hpib.h_out_hi = 0;					// hi pointer on bus				
-	  Chipset.Hpib.h_out_lo = 0;
-	  Chipset.Hpib.h_dmaen = 0;					// dma enable for hpib
-	  Chipset.Hpib.h_controller = 0;				// hpib controller is in control ?
-	  Chipset.Hpib.h_sysctl = 1;					// hpib is system controller by default
-	  Chipset.Hpib.h_int = 0;					// hpib want interrupt
-	  Chipset.Hpib.data_in = 0;
-	  Chipset.Hpib.data_in_read= 1;					// data_in read, can load the next
-	  Chipset.Hpib.aux_cmd= 0;
-	  Chipset.Hpib.address = 0;
-	  Chipset.Hpib.ser_poll = 0;
-	  Chipset.Hpib.par_poll = 0;
-	  Chipset.Hpib.par_poll_resp = 0;				// par poll response
-	  Chipset.Hpib.data_out = 0;
-	  Chipset.Hpib.data_out_loaded = 0;
-	  Chipset.Hpib.status0 = 0x00;
-	  Chipset.Hpib.status1 = 0x00;
-	  Chipset.Hpib.statusad = 0;
-	  Chipset.Hpib.statusbus = 0x00;
-	  Chipset.Hpib.intmask0 = 0x00;
-	  Chipset.Hpib.intmask1 = 0x00;
-	  Chipset.Hpib.l_atn = 0;
-	  Chipset.Hpib.l_eoi = 0;
-	  Chipset.Hpib.l_dav = 0;
-	  Chipset.Hpib.l_ifc = 0;
-	  Chipset.Hpib.l_ndac = 1;					// for starting handshake
-	  Chipset.Hpib.l_nrfd = 0;
-	  Chipset.Hpib.l_ren = 0;
-	  Chipset.Hpib.l_srq = 0;
-	  Chipset.Hpib.a_swrst = 0;
-	  Chipset.Hpib.a_dacr = 0;
-	  Chipset.Hpib.a_hdfa = 0;
-	  Chipset.Hpib.a_hdfe = 0;
-	  Chipset.Hpib.a_fget = 0;
-	  Chipset.Hpib.a_rtl = 0;
-	  Chipset.Hpib.a_lon = 0;
-	  Chipset.Hpib.a_ton = 0;
-	  Chipset.Hpib.a_rpp = 0;
-	  Chipset.Hpib.a_sic = 0;
-	  Chipset.Hpib.a_sre = 0;
-	  Chipset.Hpib.a_dai = 0;					// 9914A diseable all interrupt
-	  Chipset.Hpib.a_stdl = 0;
-	  Chipset.Hpib.a_shdw = 0;
-	  Chipset.Hpib.a_vstdl = 0;
-	  Chipset.Hpib.a_rsv2 = 0;
-	  Chipset.Hpib.s_eoi = 0;					// 9914A send oei with next byte
-	  // Chipset.Hpib.bo = 1;									
-	}
-	sthpib = 0;
-	break;
-      case 0x01:							// dacr (cs) release DAC holdoff
-	Chipset.Hpib.a_dacr = sc;
-	sthpib = 0;
-	break;
-      case 0x02:							// rhdf (--) release RFD holdoff
-	Chipset.Hpib.l_nrfd = 0;
-	sthpib = 0;
-	break;
-      case 0x03:							// hdfa (cs) hold off on all data
-	Chipset.Hpib.a_hdfa = sc;
-	sthpib = 0;
-	break;
-      case 0x04:							// hdfe (cs) hold off on EOI only
-	Chipset.Hpib.a_hdfe = sc;
-	sthpib = 0;
-	break;
-      case 0x05:							// nbaf (--) new byte available false
-	sthpib = 0;
-	break;
-      case 0x06:							// fget (cs) force group execution trigger
-	Chipset.Hpib.a_fget = sc;
-	sthpib = 0;
-	break;
-      case 0x07:							// rtl (cs) return to local
-	Chipset.Hpib.a_rtl = sc;
-	sthpib = 0;
-	break;
-      case 0x08:							// feoi (--) send EOI with next byte
-	Chipset.Hpib.s_eoi = sc;
-	sthpib = 0;
-	break;
-      case 0x09:							// lon (cs) listen only
-	//					if ((!Chipset.Hpib.lads) && sc) 
-	//						hpib_send_c(0x20 | Chipset.Hpib.address);
-	Chipset.Hpib.a_lon = sc;
-	Chipset.Hpib.llo = 0;
-	if (sc) Chipset.Hpib.rem = 1;			// do rem
-	Chipset.Hpib.lads = sc;					// do lads
-	if (sc) Chipset.Hpib.tads = 0;
-	sthpib = 0;
-	break;
-      case 0x0A:							// ton (cs) talk only
-	//					if ((!Chipset.Hpib.tads) && sc)
-	//						hpib_send_c(0x40 | Chipset.Hpib.address);
-	Chipset.Hpib.a_ton = sc;
-	Chipset.Hpib.rem = 0;
-	Chipset.Hpib.llo = 0;
-	Chipset.Hpib.tads = sc;
-	if (sc) Chipset.Hpib.lads = 0;
-	sthpib = 0;
-	break;
-      case 0x0B:							// gts (--) go to standby
-	Chipset.Hpib.l_atn = 0;
-	Chipset.Hpib.gts = 1;
-	if (Chipset.Hpib.h_controller || Chipset.Hpib.tads)
-	  Chipset.Hpib.bo = 1;
-	sthpib = 0;
-	break;
-      case 0x0C:							// tca (--) take control asynchronously
-#if defined DEBUG_HPIB
-#if defined DEBUG_HIGH
-	if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
-#endif
-	  k = wsprintf(buffer,_T("	: HPIB auxiliary : tca : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
-	  OutputDebugString(buffer); buffer[0] = 0x00;
-#if defined DEBUG_HIGH
-	}
-#endif
-#endif
-	Chipset.Hpib.l_dav = 0;
-	Chipset.Hpib.l_nrfd = 0; 
-	Chipset.Hpib.l_ndac = 1;		                         // take back synchronous control
-	Chipset.Hpib.l_atn = 1;
-	Chipset.Hpib.bi = 0;
-	Chipset.Hpib.data_in_read = 1;
-	Chipset.Hpib.bo = 1;
-	sthpib = 0;
-	break;
-      case 0x0D:							// tcs (--) take control synchronously
-#if defined DEBUG_HPIB
-#if defined DEBUG_HIGH
-	if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
-#endif
-	  k = wsprintf(buffer,_T("	: HPIB auxiliary : tcs : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
-	  OutputDebugString(buffer); buffer[0] = 0x00;
-#if defined DEBUG_HIGH
-	}
-#endif
-#endif
-	//					Chipset.Hpib.l_dav = 0;
-	//					Chipset.Hpib.l_nrfd = 0; 
-	//					Chipset.Hpib.l_ndac = 1;		// take back synchronous control
-	Chipset.Hpib.l_atn = 1;
-	Chipset.Hpib.bi = 0;
-	Chipset.Hpib.data_in_read = 1;
-	Chipset.Hpib.bo = 1;
-	sthpib = 0;
-	break;
-      case 0x0E:							// rpp (cs) request parallel poll
-	Chipset.Hpib.a_rpp = sc;
-	sthpib = 0;
-	break;
-      case 0x0F:							// sic (cs) send interface clear
-	Chipset.Hpib.a_sic = sc;
-	Chipset.Hpib.ifc = sc;
-	if (sc) Chipset.Hpib.h_controller = 1;				// take control
-	sthpib = 0;
-	break;
-      case 0x10:							// sre (cs) send remote enable
-	Chipset.Hpib.a_sre = sc;
-	Chipset.Hpib.l_ren = sc;
-	sthpib = 0;
-	break;
-      case 0x11:							// rqc (--) request control
-	// Chipset.Hpib.h_controller = 1;
-	sthpib = 0;
-	break;
-      case 0x12:							// rlc (--) release control
-	Chipset.Hpib.l_atn = 0;
-	sthpib = 0;
-	break;
-      case 0x13:							// dai (cs) disable all interrupts
-	Chipset.Hpib.a_dai = sc;
-	sthpib = 0;
-	break;
-      case 0x14:							// pts (--) pass through next secondary
-	sthpib = 0;
-	break;
-      case 0x15:							// stdl (cs) short TI settling time
-	Chipset.Hpib.a_stdl = sc;
-	sthpib = 0;
-	break;
-      case 0x16:							// shdw (cs) shadow handshake
-	Chipset.Hpib.a_shdw = sc;
-	if (Chipset.Hpib.a_shdw)
-	  fprintf(stderr,"HPIB shadow handshake !!");
-	sthpib = 0;
-	break;
-      case 0x17:							// vstdl (cs) very short T1 delay
-	Chipset.Hpib.a_vstdl = sc;
-	sthpib = 0;
-	break;
-      case 0x18:							// rsv2 (cs) request service bit 2
-	Chipset.Hpib.a_rsv2 = sc;
-	sthpib = 0;
-	break;
-      default:
-	sthpib = 0;
-	break;
-      }
-#if defined DEBUG_HPIB
-#if defined DEBUG_HIGH
-      if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
-#endif
-	k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d data %02X\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi, Chipset.Hpib.data_in);
-	OutputDebugString(buffer); buffer[0] = 0x00;
-#if defined DEBUG_HIGH
-      }
-#endif
-#endif
     }
+#endif
+#endif
+#if defined DEBUG_HPIB
+#if defined DEBUG_HIGH
+    if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
+#endif
+      k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+      OutputDebugString(buffer); buffer[0] = 0x00;
+#if defined DEBUG_HIGH
+    }
+#endif
+#endif
+    Chipset.Hpib.gts = 0;
+    switch(Chipset.Hpib.aux_cmd & 0x1F) {
+    case 0x00:							// swrst (cs) software reset
+      Chipset.Hpib.a_swrst = sc;
+      if (Chipset.Hpib.a_swrst) {
+	//						h_out_hi = 0;				
+	//						h_out_lo = 0;
+	Chipset.Hpib.h_out_hi = 0;					// hi pointer on bus
+	Chipset.Hpib.h_out_lo = 0;
+	Chipset.Hpib.h_dmaen = 0;					// dma enable for hpib
+	Chipset.Hpib.h_controller = 0;				// hpib controller is in control ?
+	Chipset.Hpib.h_sysctl = 1;					// hpib is system controller by default
+	Chipset.Hpib.h_int = 0;					// hpib want interrupt
+	Chipset.Hpib.data_in = 0;
+	Chipset.Hpib.data_in_read= 1;					// data_in read, can load the next
+	Chipset.Hpib.aux_cmd= 0;
+	Chipset.Hpib.address = 0;
+	Chipset.Hpib.ser_poll = 0;
+	Chipset.Hpib.par_poll = 0;
+	Chipset.Hpib.par_poll_resp = 0;				// par poll response
+	Chipset.Hpib.data_out = 0;
+	Chipset.Hpib.data_out_loaded = 0;
+	Chipset.Hpib.status0 = 0x00;
+	Chipset.Hpib.status1 = 0x00;
+	Chipset.Hpib.statusad = 0;
+	Chipset.Hpib.statusbus = 0x00;
+	Chipset.Hpib.intmask0 = 0x00;
+	Chipset.Hpib.intmask1 = 0x00;
+	Chipset.Hpib.l_atn = 0;
+	Chipset.Hpib.l_eoi = 0;
+	Chipset.Hpib.l_dav = 0;
+	Chipset.Hpib.l_ifc = 0;
+	Chipset.Hpib.l_ndac = 1;					// for starting handshake
+	Chipset.Hpib.l_nrfd = 0;
+	Chipset.Hpib.l_ren = 0;
+	Chipset.Hpib.l_srq = 0;
+	Chipset.Hpib.a_swrst = 0;
+	Chipset.Hpib.a_dacr = 0;
+	Chipset.Hpib.a_hdfa = 0;
+	Chipset.Hpib.a_hdfe = 0;
+	Chipset.Hpib.a_fget = 0;
+	Chipset.Hpib.a_rtl = 0;
+	Chipset.Hpib.a_lon = 0;
+	Chipset.Hpib.a_ton = 0;
+	Chipset.Hpib.a_rpp = 0;
+	Chipset.Hpib.a_sic = 0;
+	Chipset.Hpib.a_sre = 0;
+	Chipset.Hpib.a_dai = 0;					// 9914A diseable all interrupt
+	Chipset.Hpib.a_stdl = 0;
+	Chipset.Hpib.a_shdw = 0;
+	Chipset.Hpib.a_vstdl = 0;
+	Chipset.Hpib.a_rsv2 = 0;
+	Chipset.Hpib.s_eoi = 0;					// 9914A send oei with next byte
+	// Chipset.Hpib.bo = 1;									
+      }
+      sthpib = 0;
+      break;
+    case 0x01:							// dacr (cs) release DAC holdoff
+      Chipset.Hpib.a_dacr = sc;
+      sthpib = 0;
+      break;
+    case 0x02:							// rhdf (--) release RFD holdoff
+      Chipset.Hpib.l_nrfd = 0;
+      sthpib = 0;
+      break;
+    case 0x03:							// hdfa (cs) hold off on all data
+      Chipset.Hpib.a_hdfa = sc;
+      sthpib = 0;
+      break;
+    case 0x04:							// hdfe (cs) hold off on EOI only
+      Chipset.Hpib.a_hdfe = sc;
+      sthpib = 0;
+      break;
+    case 0x05:							// nbaf (--) new byte available false
+      sthpib = 0;
+      break;
+    case 0x06:							// fget (cs) force group execution trigger
+      Chipset.Hpib.a_fget = sc;
+      sthpib = 0;
+      break;
+    case 0x07:							// rtl (cs) return to local
+      Chipset.Hpib.a_rtl = sc;
+      sthpib = 0;
+      break;
+    case 0x08:							// feoi (--) send EOI with next byte
+      Chipset.Hpib.s_eoi = sc;
+      sthpib = 0;
+      break;
+    case 0x09:							// lon (cs) listen only
+      //					if ((!Chipset.Hpib.lads) && sc) 
+      //						hpib_send_c(0x20 | Chipset.Hpib.address);
+      Chipset.Hpib.a_lon = sc;
+      Chipset.Hpib.llo = 0;
+      if (sc) Chipset.Hpib.rem = 1;			        // do rem
+      Chipset.Hpib.lads = sc;					// do lads
+      if (sc) Chipset.Hpib.tads = 0;
+      sthpib = 0;
+      break;
+    case 0x0A:							// ton (cs) talk only
+      //if ((!Chipset.Hpib.tads) && sc)
+      //  hpib_send_c(0x40 | Chipset.Hpib.address);
+      Chipset.Hpib.a_ton = sc;
+      Chipset.Hpib.rem = 0;
+      Chipset.Hpib.llo = 0;
+      Chipset.Hpib.tads = sc;
+      if (sc) Chipset.Hpib.lads = 0;
+      sthpib = 0;
+      break;
+    case 0x0B:							// gts (--) go to standby
+      Chipset.Hpib.l_atn = 0;
+      Chipset.Hpib.gts = 1;
+      if (Chipset.Hpib.h_controller || Chipset.Hpib.tads)
+	Chipset.Hpib.bo = 1;
+      sthpib = 0;
+      break;
+    case 0x0C:							// tca (--) take control asynchronously
+#if defined DEBUG_HPIB
+#if defined DEBUG_HIGH
+      if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
+#endif
+	k = wsprintf(buffer,_T("	: HPIB auxiliary : tca : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+	OutputDebugString(buffer); buffer[0] = 0x00;
+#if defined DEBUG_HIGH
+      }
+#endif
+#endif
+      Chipset.Hpib.l_dav = 0;
+      Chipset.Hpib.l_nrfd = 0; 
+      Chipset.Hpib.l_ndac = 1;		                         // take back synchronous control
+      Chipset.Hpib.l_atn = 1;
+      Chipset.Hpib.bi = 0;
+      Chipset.Hpib.data_in_read = 1;
+      Chipset.Hpib.bo = 1;
+      sthpib = 0;
+      break;
+    case 0x0D:							// tcs (--) take control synchronously
+#if defined DEBUG_HPIB
+#if defined DEBUG_HIGH
+      if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
+#endif
+	k = wsprintf(buffer,_T("	: HPIB auxiliary : tcs : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+	OutputDebugString(buffer); buffer[0] = 0x00;
+#if defined DEBUG_HIGH
+      }
+#endif
+#endif
+      //					Chipset.Hpib.l_dav = 0;
+      //					Chipset.Hpib.l_nrfd = 0; 
+      //					Chipset.Hpib.l_ndac = 1;		// take back synchronous control
+      Chipset.Hpib.l_atn = 1;
+      Chipset.Hpib.bi = 0;
+      Chipset.Hpib.data_in_read = 1;
+      Chipset.Hpib.bo = 1;
+      sthpib = 0;
+      break;
+    case 0x0E:							// rpp (cs) request parallel poll
+      Chipset.Hpib.a_rpp = sc;
+      sthpib = 0;
+      break;
+    case 0x0F:							// sic (cs) send interface clear
+      Chipset.Hpib.a_sic = sc;
+      Chipset.Hpib.ifc = sc;
+      if (sc) Chipset.Hpib.h_controller = 1;			// take control
+      sthpib = 0;
+      break;
+    case 0x10:							// sre (cs) send remote enable
+      Chipset.Hpib.a_sre = sc;
+      Chipset.Hpib.l_ren = sc;
+      sthpib = 0;
+      break;
+    case 0x11:							// rqc (--) request control
+      // Chipset.Hpib.h_controller = 1;
+      sthpib = 0;
+      break;
+    case 0x12:							// rlc (--) release control
+      Chipset.Hpib.l_atn = 0;
+      sthpib = 0;
+      break;
+    case 0x13:							// dai (cs) disable all interrupts
+      Chipset.Hpib.a_dai = sc;
+      sthpib = 0;
+      break;
+    case 0x14:							// pts (--) pass through next secondary
+      sthpib = 0;
+      break;
+    case 0x15:							// stdl (cs) short TI settling time
+      Chipset.Hpib.a_stdl = sc;
+      sthpib = 0;
+      break;
+    case 0x16:							// shdw (cs) shadow handshake
+      Chipset.Hpib.a_shdw = sc;
+      if (Chipset.Hpib.a_shdw)
+	fprintf(stderr,"HPIB shadow handshake !!");
+      sthpib = 0;
+      break;
+    case 0x17:							// vstdl (cs) very short T1 delay
+      Chipset.Hpib.a_vstdl = sc;
+      sthpib = 0;
+      break;
+    case 0x18:							// rsv2 (cs) request service bit 2
+      Chipset.Hpib.a_rsv2 = sc;
+      sthpib = 0;
+      break;
+    default:
+      sthpib = 0;
+      break;
+    }
+#if defined DEBUG_HPIB
+#if defined DEBUG_HIGH
+    if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
+#endif
+      k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d data %02X\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi, Chipset.Hpib.data_in);
+      OutputDebugString(buffer); buffer[0] = 0x00;
+#if defined DEBUG_HIGH
+    }
+#endif
+#endif
+  }
   Chipset.Hpib.atn = Chipset.Hpib.l_atn;
   Chipset.Hpib.ifc = (Chipset.Hpib.h_sysctl) ? 0 : Chipset.Hpib.l_ifc;	// not set when system controller
 

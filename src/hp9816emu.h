@@ -27,7 +27,8 @@ extern int      bRamInd;   // Ram size index
 extern int      memSizes[];
 extern volatile unsigned int cpuCycles;
 extern Window	hWnd;
-		
+extern Display *dpy;
+
 extern pthread_t  cpuThread;			// system thread
 extern void	SetWindowTitle(LPTSTR szString);
 extern void	UpdateWindowStatus(VOID);
@@ -41,7 +42,8 @@ extern void     emuBitBlt(Pixmap Dst, int, int, int, int,
 			  Pixmap Src, int, int,
 			  int op);
 extern void     emuPatBlt(Pixmap Dst, int, int, int, int, int op);
-extern void     emuPutImage(Pixmap dst,int x0, int y0, int w, int h, XImage *src, int op);
+XImage         *emuCreateBMImage(int w, int h, unsigned short data[]);
+extern void     emuPutImage(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op);
 extern void     emuInfoMessage(char *);
 extern void     emuUpdateButton(int hpibAddr, int unit, char * lifVolume);
 extern void     emuUpdateDisk(int, char *);
@@ -57,6 +59,8 @@ extern UINT	bgH;
 extern UINT	scrX;
 extern UINT	scrY;
 
+extern unsigned short fontBM[];  // actual bitmap
+extern XImage  *xfontBM;        // X font bit map
 extern Pixmap	hFontBM;	// alpha font
 extern Pixmap	hAlpha1BM;	// display alpha 1
 extern Pixmap	hAlpha2BM;	// display alpha 2 (for blink)

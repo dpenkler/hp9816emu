@@ -317,7 +317,11 @@ void *CpuEmulator(void * targ) {
       if (Chipset.keeptime) SetHPTime();	// update HP time & date
 
       // init speed reference
-      dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
+      fprintf(stderr,"Initialise speed reference\n");
+      Chipset.cycles = 0;
+      Chipset.ccycles = 0;
+      dwOldCyc = 0;
+      // dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
       mtime = getTime();
       dwSpeedRef    = mtime;
       dwHpCount500  = mtime;
