@@ -59,14 +59,6 @@ When a **Unit N** label is clicked a menu to manage the corresponding disk image
 
 ## Files
 
-### System files
-
-The font file is required in the current working directory for the emulator to work:
-
-* 9816FontW.ppm      - the characterset fonts in white
-
-### Other files:
-
 ####  Disk Image Files
 
 When the emulator is **Run** initially it executes the boot rom which
