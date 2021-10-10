@@ -7,7 +7,7 @@
  */
 
 //
-// Common part of display drivers, create pixmaps, images and gcs
+// Common display driver, create pixmaps etc, read/write alpha,graph & regs
 //
 
 #include "common.h"
@@ -23,24 +23,24 @@ static int k;
 
 #define ALPHASIZE 4096
 #define CD Chipset.Display16
+#define NUM_CHARS 256
+#define CHAR_W 10
+#define CHAR_H 24
+#define NUM_EFFECTS 4
 
-XImage *xfontBM;
-//Pixmap	hFontBM;
+Pixmap	hFontBM;
 Pixmap	hAlpha1BM;
 Pixmap	hAlpha2BM;
 XImage *hGraphImg;
 Pixmap	hScreenBM;
 
-GC	hGC[4];		// 4 GC's normal, inverse, half bright, hb inverse
-int     hGCop[4];       // currently active GC operation
-XGCValues gatt;
-unsigned long bg[3][4] = {
+unsigned long bg[3][NUM_EFFECTS] = {
   {0x000000L, 0xffffffL, 0x000000L, 0x777777L}, // white
   {00000000L, 0x00ff00L, 0x000000L, 0x007700L}, // green
   {0x000000L, 0xffaa00L, 0x000000L, 0x775500L}  // amber
 };			  
 
-unsigned long fg[3][4] = {
+unsigned long fg[3][NUM_EFFECTS] = {
   {0xffffffL, 0x000000L, 0x777777L, 0x000000L}, // white
   {0x00ff00L, 0x000000L, 0x007700L, 0x000000L}, // green
   {0xffaa00L, 0x000000L, 0x775500L, 0x000000L}  // amber
@@ -57,7 +57,78 @@ UINT	scrY = 0;	// offset of screen Y
 extern int fontHeight;
 extern int fontWidth;
 
-#define CD16 Chipset.Display16
+void ForceFullCopy() {
+  CD.a_xmin = 0;
+  CD.a_xmax = CD.alpha_width;
+  CD.a_ymin = 0;
+  CD.a_ymax = CD.alpha_height;
+  CD.g_xmin = CD.graph_width;
+  CD.g_xmax = 0;
+  CD.g_ymin = CD.graph_height;
+  CD.g_ymax = 0;
+}
+
+
+void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
+
+  int i,j,k;
+  unsigned int *fontBitMap;
+  unsigned short mask;
+  /* Number  of pixels in font Pixmap NUM_EFFECTS*2 for underline also */
+  unsigned int numPixels = NUM_CHARS*CHAR_W*CHAR_H*NUM_EFFECTS*2;
+
+  if (hFontBM) emuFreeBitMap(hFontBM); /* also flings fontBitMap */
+  
+  fontBitMap = malloc(sizeof(unsigned int)*numPixels);
+
+  if (!fontBitMap) {
+    fprintf(stderr, "No memory for fontBitMap");
+    exit(1);
+  }
+  
+  for (int m=2560*22/16,i=0;i<2560/8;i++) fontBM[m++]=0; // remove underline
+
+  k =0;
+  for (i=0;i<4;i++) { // normal, inverse, half, half inverse
+    for (j=0;j<fontWidth*fontHeight/16;j++) {
+      mask = 1;
+      for (int m=0;m<16;m++) {
+	fontBitMap[k++] = (fontBM[j] & mask) ? fg[col][i] : bg[col][i];
+	mask <<= 1;
+      }
+    }
+  }
+
+  for (int m=2560*22/16,i=0;i<2560/8;i++) fontBM[m++]=0xffff; // add underline
+
+  /* do it again for underline */
+  for (i=0;i<4;i++) { // normal, inverse, half, half inverse
+    for (j=0;j<fontWidth*fontHeight/16;j++) {
+      mask = 1;
+      for (int m=0;m<16;m++) {
+	fontBitMap[k++] = (fontBM[j] & mask) ? fg[col][i] : bg[col][i];
+	mask <<= 1;
+      }
+    }
+  }
+
+  fprintf(stderr,"numPixels %d check %d\n",numPixels,k);
+  
+  hFontBM = emuCreateBitMapFromData(NUM_CHARS*CHAR_W, CHAR_H*NUM_EFFECTS*2, fontBitMap);
+
+  /* Set colour for graphics in display GC */
+  emuSetColours(fg[col][0], bg[col][0]);
+
+  //XImage *xfontBM = emuCreateBMImage(fontWidth, fontHeight, fontBM);
+  //emuPutImage(hWnd, 0, 0, 800, 24, xfontBM, GXcopy);
+  //goto out;
+  emuBitBlt(hWnd,0,0,800,192,hFontBM,0,0,GXcopy);
+  emuBitBlt(hWnd,0,192,800,192,hFontBM,800,0,GXcopy);
+  emuBitBlt(hWnd,0,384,800,192,hFontBM,1600,0,GXcopy);
+ out:
+  emuFlush();
+}
+
 
 //################
 //#
@@ -95,47 +166,31 @@ VOID CreateScreenBitmap(VOID)  {
 
   Chipset.switch1 = 0xE5;
   Chipset.switch2 = 0xC0;
-  CD16.alpha_width  = 800;	// width in pc pixels
-  CD16.alpha_height = 600;	// height in pc pixels
-  CD16.alpha_char_w =  10;
-  CD16.alpha_char_h =  24;
-  CD16.graph_width  = 800;	// width in pc pixels
-  CD16.graph_bytes  =  50;	// 9816 width in bytes 50*8=400
-  CD16.graph_height = 600;	// height in pc pixesl
-  CD16.graph_visible = 30000;	// last address byte visible : 400x300/8 x 2 (only odd bytes)
-  CD16.default_pixel = 0xffffff;
-  // XImage for font bitmap
-  xfontBM = emuCreateBMImage(fontWidth, fontHeight, fontBM);
-  fprintf(stderr,"xfontBM %lx\n",(unsigned long)xfontBM);
+  CD.alpha_width  = 800;	// width in pc pixels
+  CD.alpha_height = 600;	// height in pc pixels
+  CD.alpha_char_w =  10;
+  CD.alpha_char_h =  24;
+  CD.graph_width  = 800;	// width in pc pixels
+  CD.graph_bytes  =  50;	// 9816 width in bytes 50*8=400
+  CD.graph_height = 600;	// height in pc pixesl
+  CD.graph_visible = 30000;	// last address byte visible : 400x300/8 x 2 (only odd bytes)
+  CD.default_pixel = 0xffffff;
+
   // create alpha1 bitmap
-  hAlpha1BM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
+  hAlpha1BM = emuCreateBitMap(CD.alpha_width, CD.alpha_height);
   // create alpha2 bitmap
-  hAlpha2BM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
+  hAlpha2BM = emuCreateBitMap(CD.alpha_width, CD.alpha_height);
   // create graph image
-  hGraphImg = emuCreateImage(CD16.graph_width, CD16.graph_height);
+  hGraphImg = emuCreateImage(CD.graph_width, CD.graph_height);
   // fprintf(stderr,"Graph im bpl %d\n",hGraphImg->bytes_per_line);
   // create screen bitmap
-  hScreenBM = emuCreateBitMap(CD16.alpha_width, CD16.alpha_height);
+  hScreenBM = emuCreateBitMap(CD.alpha_width, CD.alpha_height);
+  // font bitmap
+  mkFontBM(1);
+  // hFontBM = emuLoadBitMap("9816FontW.ppm");	// Load bitmap font
+  
+  ForceFullCopy();
  
-  for (int i=0; i< 4; i++) {
-    gatt.function  =  hGCop[i] = GXcopy;
-    gatt.foreground = fg[2][i];
-    gatt.background = bg[2][i];
-    gatt.graphics_exposures = 0;
-    hGC[i] = XCreateGC(dpy, hWnd, GCFunction | GCForeground | GCBackground | GCGraphicsExposures, &gatt);
-  }
-  CD16.a_xmin = 0;
-  CD16.a_xmax = CD16.alpha_width;
-  CD16.a_ymin = 0;
-  CD16.a_ymax = CD16.alpha_height;
-  CD16.g_xmin = CD16.graph_width;
-  CD16.g_xmax = 0;
-  CD16.g_ymin = CD16.graph_height;
-  CD16.g_ymax = 0;
-  for (int i=0;i<4;i++) {
-    emuPutImage(hWnd, hGC[i], 0, i*24, 800, 24, xfontBM, 0, 0, GXcopy);
-  }
-  emuFlush();
 }
 
 //
@@ -155,17 +210,13 @@ VOID DestroyScreenBitmap(VOID) {
     emuFreeBitMap(hAlpha2BM);
     hAlpha2BM = 0;
   }
-  if (xfontBM != 0) {
-    emuFreeImage(xfontBM);
-    xfontBM = 0;
+  if (hFontBM != 0) {
+    emuFreeBitMap(hFontBM);
+    hFontBM = 0;
   }
   if (hScreenBM != 0) {
     emuFreeBitMap(hScreenBM);
     hScreenBM = 0;
-  }
-  for (int i=0;i<4;i++) {
-    if (hGC[i] != 0) XFreeGC(dpy,hGC[i]);
-    hGC[i] = 0;
   }
 }
 
@@ -188,7 +239,7 @@ VOID UpdateLeds(BOOL bForce) {
   if (change) emuFlush();
 }
 
-// Update is done in real-time at each acces to video-memory in the graph or alpha bitmap.
+// Update is done in real-time at each acces to video-memory,  graph & alpha.
 // CRT refresh frequency is emulated with a timer based on 68000 cycle
 // will create screen bitmap and copy it to main display
 // counter on real-speed and with High performance counter otherwise at 1/60 sec.
@@ -196,7 +247,7 @@ VOID UpdateLeds(BOOL bForce) {
 // 
 // HP9816  with 09816-66582 enhancement
 // basic graphic 400x300 at zoom 2,2		16 Kb 
-// basic alpha 800x600 no zoom,	 80x25	2kb with effect (blink not yet done)
+// basic alpha 800x600 no zoom,	 80x25	2kb with effect (blink not impmlemented)
 //
 //
 
@@ -205,14 +256,17 @@ VOID UpdateLeds(BOOL bForce) {
 // for alpha part dual ported ram address with s effect byte
 //
 
+static BYTE lasta=0;
+static WORD lastd=0;
 static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
   INT  x0, xmin, xmax;
   INT  y0, ymin, ymax;
   int  op;
-  int  gcind = 0;  // default gc index - normal
   WORD	dy;
   WORD	delta;			// distance from display start in byte
 
+  if (lasta==a && lastd==d) return;
+  lasta = a; lastd = d;
   d &= 0x07FF;
 
   if (d >= (CD.start & 0x07FF)) {
@@ -227,7 +281,6 @@ static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
     x0 = (delta % 80) * CD.alpha_char_w + scrX;		// where on X
     xmin = xmax = x0;					// min box
     ymin = ymax = y0;
-    dy = 0;
     switch (d >> 12) { // get TEXT (bit13), KEYS (bit12)
     case 0: op = GXclear;			  break; // nothing displayed
     case 1: op = (d & 0x0800) ? GXcopy : GXclear; break; // keys on, text off
@@ -235,17 +288,14 @@ static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
     default: op = GXcopy;			  break; // keys on, text on
     }
     // change line in font bitmap
+    dy = 0;
+    if (s & 0x04) dy += 4*CD.alpha_char_h;	// underline
+    if (s & 0x08) dy += 2*CD.alpha_char_h;	// half bright
+    if (s & 0x01) dy += CD.alpha_char_h;	// inverse video
+    // copy the font bits to alpha1 bitmap
+    emuBitBlt(hAlpha1BM, x0, y0, CD.alpha_char_w, CD.alpha_char_h,
+	      hFontBM, (int)(a) * CD.alpha_char_w, dy, op);
 
-    // FIXME if (s & 0x04) dy += CD.alpha_char_h;	   // underline
-    if (s & 0x08) gcind = 2 + (s & 0x01);	   // half bright + inverse?
-    else if (s & 0x01) gcind = 1;		   // inverse video
-    // copy the font bitmap part to alpha1 bitmap
-    if (hGCop[gcind] != op) {
-      XSetFunction(dpy,hGC[gcind],op);
-      hGCop[gcind] = op;
-    }
-    emuPutImage(hAlpha1BM, hGC[gcind], x0, y0, CD.alpha_char_w, CD.alpha_char_h,
-		xfontBM, (int)(a) * CD.alpha_char_w, dy, op);
     xmax += CD.alpha_char_w;	// adjust max box
     ymax += CD.alpha_char_h;
     // adjust rectangle
@@ -253,6 +303,7 @@ static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
     if (xmin < CD.a_xmin) CD.a_xmin = xmin;
     if (ymax > CD.a_ymax) CD.a_ymax = ymax;
     if (ymin < CD.a_ymin) CD.a_ymin = ymin;
+    //    fprintf(stderr,"%06X: WriteDisplay %02X %04X\n", Chipset.Cpu.PC, a, d);
   } else {
     // fprintf(stderr,"%06X: Write Main Display %02X - %04X : %04X : %04X\n",
     //	       Chipset.Cpu.PC, a, CD.start, d, CD.end);
@@ -276,7 +327,7 @@ static VOID Cursor_Remove16(VOID) {
 	emuBitBlt(hWnd, x0, y0, CD.alpha_char_w, CD.alpha_char_h, 
 		  hAlpha1BM, x0, y0, GXcopy);
 	if (CD.graph_on)			// put graph part again if it was on
-	  emuPutImage(hWnd, hGC[0], x0, y0, CD.alpha_char_w, CD.alpha_char_h, hGraphImg, x0, y0, GXxor);
+	emuPutImage(hWnd, x0, y0, CD.alpha_char_w, CD.alpha_char_h, hGraphImg, GXxor);
       }
     }
     CD.cursor_last = 0;				// cursor is off
@@ -302,8 +353,9 @@ static VOID Cursor_Display16(VOID) {
       y0 = ((d - CD.start) / 80) * CD.alpha_char_h + scrY + CD.cursor_t;
       x0 = ((d - CD.start) % 80) * CD.alpha_char_w + scrX; 
       emuPatBlt(hWnd, x0, y0, CD.alpha_char_w, CD.cursor_h, GXset);
-      if (CD.graph_on)
-	emuPutImage(hWnd, hGC[0], x0, y0, CD.alpha_char_w, CD.cursor_h, hGraphImg, x0, y0, GXxor);
+      if (CD.graph_on) {
+	emuPutImage(hWnd,  x0, y0, CD.alpha_char_w, CD.cursor_h, hGraphImg, GXxor);
+      }
     }
   }
   CD.cursor_last = 1;				// cursor is on
@@ -346,10 +398,10 @@ void Write_Regs16(BYTE *a) {
   case 10:
     CD.cursor_t = (((*a) & 0x1F) * 23) / 13;
     switch (((*a) & 0x60) >> 5) {
-    case 0:  CD.cursor_blink = 0x00; break;	//always on
+    case 0:  CD.cursor_blink = 0x00; break;	// always on
     case 1:  CD.cursor_blink = 0xFF; break;	// off
     case 2:  CD.cursor_blink = 0x20; break;	// blink 1/16
-    default: CD.cursor_blink = 0x10;	// blink 1/32
+    default: CD.cursor_blink = 0x10;	        // blink 1/32
     }
     if (CD.cursor_b >= CD.cursor_t)  CD.cursor_h = CD.cursor_b - CD.cursor_t + 1;
     break;
@@ -498,6 +550,7 @@ BYTE Read_Graph16(BYTE *a, WORD d, BYTE s) {
   }
   return BUS_OK;
 }
+
 static void PutPixel(int x, int y, unsigned int pixel) {
    XPutPixel(hGraphImg, x,   y,	  pixel);
    XPutPixel(hGraphImg, x+1, y,	  pixel);
@@ -559,10 +612,10 @@ BYTE Write_Graph16(BYTE *a, WORD d, BYTE s) {
       PutPixel(x, y, (*a & 0x01) ? CD.default_pixel : 0); x+=2;
 
       // adjust rectangle
-      if (x > CD.g_xmax)   CD.g_xmax = x;
-      if (x0 < CD.g_xmin)  CD.g_xmin = x0;
+      if (x   > CD.g_xmax) CD.g_xmax = x;
+      if (x0  < CD.g_xmin) CD.g_xmin = x0;
       if (y+2 > CD.g_ymax) CD.g_ymax = y+2;
-      if (y0 < CD.g_ymin)  CD.g_ymin = y0;
+      if (y0  < CD.g_ymin) CD.g_ymin = y0;
       }
     d++;
     s--;
@@ -599,24 +652,12 @@ VOID Reload_Graph(VOID) {
   }
 }
 
-void ForceFullCopy() {
-  CD.a_xmin = 0;
-  CD.a_xmax = CD.alpha_width;
-  CD.a_ymin = 0;
-  CD.a_ymax = CD.alpha_height;
-  CD.g_xmin = CD.graph_width;
-  CD.g_xmax = 0;
-  CD.g_ymin = CD.graph_height;
-  CD.g_ymax = 0;
-}
-
 //
 // update alpha display when start change only
 // called with FALSE when start changes
 // called with TRUE on image load and system reset (files.c & mops.c)
 //
 VOID UpdateMainDisplay(BOOL bForce) { 
-  WORD	i;
   int	nbytes = 25*80;
   int	x0, y0,gcind = 0;
   WORD	dVid;
@@ -632,26 +673,23 @@ VOID UpdateMainDisplay(BOOL bForce) {
   dVid = ((d & 0x07FF) << 1) + 1;	// address (11 bits) in video ram (2 bytes per char)
   y0 = scrY;
   x0 = scrX;	
-  for (i = 0; i < nbytes; i++) {	
+  for (int i = 0; i < nbytes; i++) {	
     s = CD.alpha[dVid-1];		// effect byte
-    dy = 0;
     switch (d >> 12) {			// get TEXT (bit13), KEYS (bit12)
     case 0: op = GXclear;			  break;    // nothing displayed
     case 1: op = (d & 0x0800) ? GXcopy : GXclear; break;    // keys on, text off
     case 2: op = (d & 0x0800) ? GXclear : GXcopy; break;    // keys off, text on
     default: op = GXcopy;				    // keys on, text on
     }
-    // FIXME if (s & 0x04) dy += CD.alpha_char_h;	   // underline
-    gcind = 0;
-    if (s & 0x08) gcind = 2 + (s & 0x01);	   // half bright + inverse?
-    else if (s & 0x01) gcind = 1;		   // inverse video
-    if (hGCop[gcind] != op) {
-      XSetFunction(dpy,hGC[gcind],op);
-      hGCop[gcind] = op;
-    }
-    emuPutImage(hAlpha1BM, hGC[gcind], x0, y0, CD.alpha_char_w, CD.alpha_char_h, 
-		xfontBM, CD.alpha[dVid] * CD.alpha_char_w, dy,
-		op);
+    /* draw char */
+    dy = 0;
+    if (s & 0x04) dy += 4*CD.alpha_char_h; 	// underline
+    if (s & 0x08) dy += 2*CD.alpha_char_h;      // half bright
+    if (s & 0x01) dy += CD.alpha_char_h;        // inverse video
+    emuBitBlt(hAlpha1BM, x0, y0, CD.alpha_char_w, CD.alpha_char_h, 
+	      hFontBM, CD.alpha[dVid] * CD.alpha_char_w, dy,
+	      op);
+
     dVid += 2;
     dVid &= 0x0FFF;				// wrap at 4k
     x0 += CD.alpha_char_w;
@@ -672,6 +710,8 @@ VOID UpdateMainDisplay(BOOL bForce) {
 VOID Refresh_Display(BOOL bForce) {
   BYTE do_flush = 0;
 
+  //fprintf(stderr,"%06X: Refresh Display, %d\n", Chipset.Cpu.PC, bForce);
+
   if (bForce) ForceFullCopy();
 
   if (CD.a_xmax > CD.a_xmin) {	// something to draw on alpha
@@ -679,7 +719,7 @@ VOID Refresh_Display(BOOL bForce) {
 	      hAlpha1BM, CD.a_xmin, CD.a_ymin, 
 	      GXcopy);
     if (CD.graph_on) { // add graph corresponding graphics area
-      emuPutImage(hWnd, hGC[0], CD.a_xmin, CD.a_ymin, CD.a_xmax-CD.a_xmin, CD.a_ymax-CD.a_ymin, hGraphImg, CD.a_xmin, CD.a_ymin, GXxor);
+      emuPutImage(hWnd, CD.a_xmin, CD.a_ymin, CD.a_xmax-CD.a_xmin, CD.a_ymax-CD.a_ymin, hGraphImg, GXxor);
     }
     do_flush = 1;
     CD.a_xmin = CD.alpha_width;		// nothing more to re draw at next vbl
@@ -692,7 +732,7 @@ VOID Refresh_Display(BOOL bForce) {
 	      CD.g_xmax-CD.g_xmin,  CD.g_ymax-CD.g_ymin, 
 	      hAlpha1BM, CD.g_xmin, CD.g_ymin, 
 	      GXcopy);
-    emuPutImage(hWnd, hGC[0], CD.g_xmin, CD.g_ymin, CD.g_xmax-CD.g_xmin, CD.g_ymax-CD.g_ymin, hGraphImg, CD.g_xmin, CD.g_ymin, GXxor);
+    emuPutImage(hWnd, CD.g_xmin, CD.g_ymin, CD.g_xmax-CD.g_xmin, CD.g_ymax-CD.g_ymin, hGraphImg, GXxor);
     do_flush = 1;
     CD.g_xmin = CD.graph_width;		// nothing more to re draw at next vbl
     CD.g_xmax = 0;

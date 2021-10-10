@@ -42,8 +42,11 @@ extern void     emuBitBlt(Pixmap Dst, int, int, int, int,
 			  Pixmap Src, int, int,
 			  int op);
 extern void     emuPatBlt(Pixmap Dst, int, int, int, int, int op);
-XImage         *emuCreateBMImage(int w, int h, unsigned short data[]);
-extern void     emuPutImage(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op);
+extern Pixmap   emuCreateBitMapFromData(int w, int h, unsigned int data[]);
+extern XImage  *emuCreateBMImage(int w, int h, unsigned short data[]);
+extern void     emuImgBlt(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op);
+extern void     emuPutImage(Pixmap dst, int dx0, int dy0, int w, int h, XImage *src, int op);
+extern void     emuSetColours(unsigned int fg, unsigned int bg);
 extern void     emuInfoMessage(char *);
 extern void     emuUpdateButton(int hpibAddr, int unit, char * lifVolume);
 extern void     emuUpdateDisk(int, char *);
@@ -60,14 +63,12 @@ extern UINT	scrX;
 extern UINT	scrY;
 
 extern unsigned short fontBM[];  // actual bitmap
-extern XImage  *xfontBM;        // X font bit map
 extern Pixmap	hFontBM;	// alpha font
 extern Pixmap	hAlpha1BM;	// display alpha 1
 extern Pixmap	hAlpha2BM;	// display alpha 2 (for blink)
 extern XImage  *hGraphImg;	// display graph
 extern Pixmap	hScreenBM;      // main window bitmap
 
-extern VOID	UpdateClut(VOID); // colour lookup table
 extern VOID	SetScreenColor(UINT nId, UINT nRed, UINT nGreen, UINT nBlue);
 extern VOID	SetGraphColor(BYTE col);
 extern VOID	CreateScreenBitmap(VOID);
@@ -78,10 +79,7 @@ extern VOID	UpdateLeds(BOOL bForce);
 extern VOID	Refresh_Display(BOOL bforce);	// refresh altered part of display at vsync
 extern VOID	UpdateMainDisplay(BOOL bforce);	// refresh altered part of display at vsync
 extern VOID	Reload_Graph(VOID);		// reload graph bitmap from graph mem
-extern VOID	UpdateClut(VOID);
-
-// Display16.c
-extern BYTE	Write_Display16(BYTE *a, WORD d, BYTE s);	// for alpha part
+extern BYTE	Write_Display16(BYTE *a, WORD d, BYTE s);       // for alpha part
 extern BYTE	Read_Display16(BYTE *a, WORD d, BYTE s);
 extern BYTE	Write_Graph16(BYTE *a, WORD d, BYTE s);		// for graph part
 extern BYTE	Read_Graph16(BYTE *a, WORD d, BYTE s);

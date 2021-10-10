@@ -61,7 +61,6 @@ static EZ_Widget *memLabel;
 /* Speed menu */
 static EZ_Widget *spButton = NULL;     /* speed selector button    */
 static EZ_Widget *speedMenu = NULL;    /* speed setting menu       */
-static int        speedMenuPosted = 0; /* speed menu is posted flag*/
 static EZ_Widget *speedButton[6];      /* speed selection buttons  */
 /* System image menu */
 static EZ_Widget *siButton = NULL;     /* system immage button     */
@@ -84,7 +83,7 @@ static EZ_Widget *cpuStatus;
 static EZ_Widget *workArea;            /* the 9816 display area    */
 static int        emuInit = 0, panelInit = 0;
 Display          *dpy;                 /* the display */
-static GC         drawGC;
+static GC         dispGC;
 static XGCValues  gcvalues;
 
 #define LARGE_FONT "-adobe-helvetica-bold-r-normal-*-*-100-*-*-*-*-*-*"
@@ -99,9 +98,9 @@ void emuBitBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, Pixmap src, int sx0
 
   if (op != oldop) {
     oldop = op;
-    XSetFunction(dpy, drawGC, op );
+    XSetFunction(dpy, dispGC, op );
   }
-  XCopyArea(dpy, src, dst, drawGC, sx0, sy0, dw, dh, dx0, dy0);
+  XCopyArea(dpy, src, dst, dispGC, sx0, sy0, dw, dh, dx0, dy0);
 }
 
 
@@ -109,9 +108,38 @@ void emuPatBlt(Pixmap dst, int dx0, int dy0, int dw, int dh, int op) {
   // fprintf(stderr,"emuPatBlt %ld  ",(long) dst);
  if (op != oldop) {
     oldop = op;
-    XSetFunction(dpy, drawGC, op );
+    XSetFunction(dpy, dispGC, op );
   }
-  XFillRectangle(dpy, dst, drawGC,  dx0, dy0, dw, dh);
+  XFillRectangle(dpy, dst, dispGC,  dx0, dy0, dw, dh);
+}
+
+void emuImgBlt(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op) {
+  //  fprintf(stderr,"emuPutImage %ld  %ld %4d %4d %4d %4d %5d %5d\n",(long) dst, (long) src, sx0, sy0, dx0, dy0, w, h);	    
+  XPutImage(dpy, dst, gc, src, sx0, sy0, dx0, dy0, w, h);
+}
+
+void emuPutImage(Pixmap dst, int dx0, int dy0, int w, int h, XImage *src, int op) {
+
+  if (op != oldop) {
+    oldop = op;
+    XSetFunction(dpy, dispGC, op );
+  }
+  XPutImage(dpy, dst, dispGC, src, dx0, dy0, dx0, dy0, w, h);
+}
+
+Pixmap emuCreateBitMap(int w, int h) {
+  Pixmap imagePixmap=0;
+  fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
+  imagePixmap = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
+  return imagePixmap;
+}
+
+Pixmap emuCreateBitMapFromData(int w, int h, unsigned int data[]) {
+  Pixmap p;
+  XImage *xim = XCreateImage(dpy, EZ_GetVisual(), EZ_GetDepth(), ZPixmap, 0,(char *) data, w, h, 32, w*4);
+  p = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
+  XPutImage(dpy, p, dispGC, xim, 0,0,0,0, w,h);
+  return p;
 }
 
 XImage *emuCreateBMImage(int w, int h, unsigned short data[]) {
@@ -123,19 +151,6 @@ XImage *emuCreateBMImage(int w, int h, unsigned short data[]) {
   ret->format = XYBitmap;
   ret->bitmap_unit = 8;
   return ret;
-}
-
-void emuPutImage(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op) {
-  fprintf(stderr,"emuPutImage %ld  %ld %4d %4d\n",(long) dst, (long) src, dx0, dy0);	    
-  XPutImage(dpy, dst, gc, src, sx0, sy0, dx0, dy0, w, h);
-}
-
-
-Pixmap emuCreateBitMap(int w, int h) {
-  Pixmap imagePixmap=0;
-  fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
-  imagePixmap = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
-  return imagePixmap;
 }
 
 Pixmap emuLoadBitMap(LPCTSTR fn) {
@@ -158,9 +173,15 @@ XImage *emuCreateImage(int x, int y) {
 		      0, img, x, y, 32, 0);
 }
 
+void emuSetColours(unsigned int fg, unsigned int bg) {
+  XSetBackground(dpy,dispGC,bg);
+  XSetForeground(dpy,dispGC,fg);
+}
+
 void emuFreeImage(XImage *img) {
   XDestroyImage(img);
 }
+
 void emuSetWidgetPosition(EZ_Widget *parent, EZ_Widget *move, int x, int y) {
   // really move relative to parent
   int px,py,pw,ph;
@@ -186,15 +207,17 @@ static void hp9816emuDraw(EZ_Widget *widget) {
   rc.right  = bgW;
   if (!emuInit) {
     hWnd = EZ_GetWidgetWindow(widget); /* widget window */
-    XSetFunction(dpy, drawGC, GXclear);
-    // XFillRectangle(dpy, hWnd, drawGC,  0, 0, bgW, bgH);
     XMapWindow(dpy, hWnd);
+    /* GC for graphics and alpha display operations */
+    gcvalues.function = GXcopy;
+    gcvalues.graphics_exposures = 0;
+    dispGC = XCreateGC(dpy, hWnd, GCGraphicsExposures | GCFunction, &gcvalues);
     emuSetEvents(widget);
     emuInit = 1;
     return;
   } else {
     // redraw main display area
-    //    Refresh_Display(TRUE);
+    Refresh_Display(TRUE);
   }
 }
 
@@ -368,14 +391,7 @@ void settingsCB(EZ_Widget *w, void *data) {
 }
 
 void speedMenuCB(EZ_Widget *w, void *data) {
-  if (speedMenuPosted) {
-     EZ_HideWidget(speedMenu);
-     speedMenuPosted = 0;
-     return;
-  }
-  EZ_DisplayWidget(speedMenu);
-  EZ_RaiseWidgetWindow(speedMenu);
-  speedMenuPosted = 1;
+  EZ_DoPopup(speedMenu, EZ_BOTTOM_RIGHT);
 }
 
 void speedCB(EZ_Widget *w, void *data) {
@@ -383,20 +399,10 @@ void speedCB(EZ_Widget *w, void *data) {
   fprintf(stderr,"speedCB %d\n",speed);
   SetSpeed(speed);
   wRealSpeed = speed;
-  EZ_HideWidget(speedMenu);
-  speedMenuPosted = 0;
 }
 
 void siMenuCB(EZ_Widget *w, void *data) {
-  if (siMenuPosted) {
-     EZ_HideWidget(siMenu);
-     siMenuPosted = 0;
-  } else {
-    EZ_DisplayWidget(siMenu);
-    emuSetWidgetPosition(siButton, siMenu,-32,0);
-    EZ_RaiseWidgetWindow(siMenu);
-    siMenuPosted = 1;
-  }
+  EZ_DoPopup(siMenu, EZ_BOTTOM_RIGHT);
 }
 
 static void genCB(EZ_Widget *w, void *d) {
@@ -855,7 +861,6 @@ static UINT SaveChanges(BOOL bAuto) {
 
 static void loadSICB(EZ_Widget *w, void *d) {
   EZ_HideWidget(siMenu);
-  siMenuPosted = 0;
   EZ_ConfigureWidget(fileSelector,
 		     EZ_CALLBACK, setBufferFilename, (void *)OnFileOpen,
 		     EZ_CLIENT_INT_DATA, (long)d,
@@ -874,8 +879,7 @@ static void saveSICB(EZ_Widget *w, void *data) {
 }
 
 static void saveAsSICB(EZ_Widget *w, void *data) {
-  EZ_HideWidget(siMenu);
-  siMenuPosted = 0;
+  //  EZ_HideWidget(siMenu);
   if (pbyRom == NULL) return;
   EZ_ConfigureWidget(fileSelector,
 		     EZ_CALLBACK, setBufferFilename, (void *)OnFileSaveAs,
@@ -1486,11 +1490,8 @@ int main(int ac, char **av) {
   setupRightHandPanel(frame);
 
   dpy    = EZ_GetDisplay();            /* display   */
-  drawGC = EZ_GetGC(0L,&gcvalues);
-  XSetBackground(dpy,drawGC,BlackPixel(dpy, EZ_GetScreen()));
-  XSetForeground(dpy,drawGC,WhitePixel(dpy, EZ_GetScreen()));
 
- 
+  
   /* Timer for Mhz and mem display update */
   EZ_Timer *mTimer = EZ_CreateTimer(1,0,-1,timerCB,toplevel,0);
 
