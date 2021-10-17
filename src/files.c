@@ -13,6 +13,13 @@
 #include "mops.h"
 #include "rom.h"
 
+
+//#define DEBUG_FILES
+#if defined(DEBUG_FILES)
+static TCHAR buffer[256];
+static int k;
+#endif
+
 TCHAR  szCurrentDirectory[MAX_PATH];
 TCHAR  szCurrentFilename[MAX_PATH];
 TCHAR  szBufferFilename[MAX_PATH];
@@ -33,7 +40,12 @@ static int hCurrentFile = -1;
 // New document settings
 //
 static BOOL newSettingsProc() {
-  fprintf(stderr,"newSettingsProc\n");
+
+#if defined(DEBUG_FILES)
+  k = wsprintf(buffer,"newSettingsProc\n");
+  OutputDebugString(buffer);
+#endif
+
   Chipset.RamSize = memSizes[bRamInd]*1024;	        // RAM size
   Chipset.RamStart = 0x01000000 - Chipset.RamSize;	// from ... to 0x00FFFFFF
   
@@ -70,7 +82,11 @@ static BOOL newSettingsProc() {
 //   System images
 //
 VOID resetSystemImage(VOID) {
-  fprintf(stderr,"resetSystemImage\n");
+
+#if defined(DEBUG_FILES)
+  k = wsprintf(buffer,"resetSystemImage\n");
+  OutputDebugString(buffer);
+#endif
 
   hpib_stop_bus();
 
@@ -88,7 +104,10 @@ VOID resetSystemImage(VOID) {
   Chipset.Rom = (LPBYTE)rom30;
   Chipset.RomSize = sizeof(rom30);
 
-  fprintf(stderr,"CS %ld, %ld\n",sizeof(Chipset),sizeof(rom30));
+#if defined(DEBUG_FILES)
+  k = wsprintf(buffer,"CS %ld, %ld\n",sizeof(Chipset),sizeof(rom30));
+  OutputDebugString(buffer);
+#endif
   
   destroyScreenBitmap();
 
@@ -99,7 +118,11 @@ VOID resetSystemImage(VOID) {
 
 BOOL newSystemImage(VOID) {
 
-  fprintf(stderr,"newSystemImage\n");
+#if defined(DEBUG_FILES)
+  k = wsprintf(buffer,"newSystemImage\n");
+  OutputDebugString(buffer);
+#endif
+
 
   resetSystemImage();
 
@@ -109,7 +132,10 @@ BOOL newSystemImage(VOID) {
   if (Chipset.Ram == NULL) {
     Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
   }
-  fprintf(stderr,"RamSize %d\n",Chipset.RamSize);
+#if defined(DEBUG_FILES)
+  k = wsprintf(buffer,"RamSize %d\n",Chipset.RamSize);
+  OutputDebugString(buffer);
+#endif
 
   systemReset();
 
@@ -134,7 +160,7 @@ BOOL openSystemImage(LPCTSTR szFilename) {
   lBytesRead = read(hFile, pbyFileSignature, sizeof(pbyFileSignature));
   for (ctBytesCompared=0; ctBytesCompared<sizeof(pbyFileSignature); ctBytesCompared++) {
     if (pbyFileSignature[ctBytesCompared]!=pbySignature[ctBytesCompared]) {
-      fprintf(stderr,"This file is not a valid hp9816 configuration.");
+      emuInfoMessage("This file is not a valid hp9816 configuration.");
       goto restore;
     }
   }
@@ -148,12 +174,12 @@ BOOL openSystemImage(LPCTSTR szFilename) {
     read(hFile, &Chipset, lSizeofChipset);
   } else goto read_err;
 
-    Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
+  Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
   if (Chipset.Ram == NULL) {
     fprintf(stderr,"RAM Memory Allocation Failure.");
     goto restore;
   }
-
+  
   lBytesRead = read(hFile, Chipset.Ram, Chipset.RamSize);
   if (lBytesRead != Chipset.RamSize) goto read_err;
 
@@ -194,7 +220,7 @@ BOOL openSystemImage(LPCTSTR szFilename) {
   return TRUE;
 
  read_err:
-  fprintf(stderr,"This file must be truncated, and cannot be loaded.");
+  emuInfoMessage("This file must be truncated, and cannot be loaded.");
  restore:
   if (hFile != -1) close(hFile);
   return FALSE;
@@ -217,7 +243,7 @@ BOOL saveSystemImage(VOID) {
   
   nFSize = sizeof(pbySignature);
   if (nFSize != write(hCurrentFile, pbySignature, sizeof(pbySignature))) {
-    fprintf(stderr,"Could not write into file !");
+    emuInfoMessage("Could not write into file !");
     return FALSE;
   }
 
@@ -243,7 +269,7 @@ BOOL saveSystemImageAs(LPCTSTR szFilename) {
   }
   hFile = creat(szFilename, O_EXCL | 0640);
   if (hFile < 0) {	// error, couldn't create a new file
-    fprintf(stderr,"This file must be currently used by another instance of hp9816emu.");
+    emuInfoMessage("This file must be currently used by another instance of hp9816emu.");
     return FALSE;
   }
   strcpy(szCurrentFilename, szFilename);	// save new file name
