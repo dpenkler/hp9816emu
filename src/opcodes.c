@@ -80,8 +80,8 @@ VOID decode_op(WORD op, OP *ope) {
   
   BOOL ea2_valid = (ea2_imode != EA_NONE);
   BOOL ea2_data = ea2_valid && !(ea2_a);
-  BOOL ea2_memory = ea2_valid && !(ea2_d || ea2_a);
-  BOOL ea2_control = ea2_valid && !(ea2_d || ea2_a || ea2_iai || ea2_iad || ea2_imm);
+  //  BOOL ea2_memory = ea2_valid && !(ea2_d || ea2_a);
+  //  BOOL ea2_control = ea2_valid && !(ea2_d || ea2_a || ea2_iai || ea2_iad || ea2_imm);
   BOOL ea2_alterable = ea2_valid && !(ea2_idp || ea2_idpx || ea2_imm);
   
   BOOL ill_op = FALSE;

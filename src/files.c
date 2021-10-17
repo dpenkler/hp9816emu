@@ -11,20 +11,13 @@
 #include "common.h"
 #include "hp9816emu.h"
 #include "mops.h"
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include "rom.h"
 
-
-extern unsigned short rom30[];
 TCHAR  szCurrentDirectory[MAX_PATH];
 TCHAR  szCurrentFilename[MAX_PATH];
 TCHAR  szBufferFilename[MAX_PATH];
 
-// pointers for roms data
-LPBYTE pbyRom = NULL;
-
-// System imgage signatures
+// System image signatures
 #define SignatureLength 32
 static BYTE pbySignature [SignatureLength] = "hp9816emu Configuration V1.0";
 static int hCurrentFile = -1;
@@ -39,22 +32,21 @@ static int hCurrentFile = -1;
 //
 // New document settings
 //
-static BOOL NewSettingsProc() {
-  Chipset.RamSize = _KB(memSizes[bRamInd]);	        // RAM size
+static BOOL newSettingsProc() {
+  fprintf(stderr,"newSettingsProc\n");
+  Chipset.RamSize = memSizes[bRamInd]*1024;	        // RAM size
   Chipset.RamStart = 0x01000000 - Chipset.RamSize;	// from ... to 0x00FFFFFF
   
-  Chipset.Hpib71x = 1;	// printer ?
   
-  Chipset.Hpib70x = 1;	// type of disk 9121
-  Chipset.Hpib72x = 3;	// type of disk 9122
-  Chipset.Hpib73x = 1;	// type of disk 7908
-  Chipset.Hpib74x = 1;	// type of disk 7908
+  Chipset.Hpib700 = 1;	// type of disk 9121
+  Chipset.Hpib701 = 1;	// printer ?
+  Chipset.Hpib702 = 3;	// type of disk 9122
+  Chipset.Hpib703 = 1;	// type of disk 7908
+  Chipset.Hpib704 = 1;	// type of disk 7908
     
   hpib_init();		// initialize it
   
-  Chipset.RomVer = 30;
-
-  SetSpeed(wRealSpeed);	// set speed
+  setSpeed(wRealSpeed);	// set speed
   
   Chipset.keeptime = bKeeptime;
   
@@ -77,8 +69,9 @@ static BOOL NewSettingsProc() {
 //
 //   System images
 //
+VOID resetSystemImage(VOID) {
+  fprintf(stderr,"resetSystemImage\n");
 
-VOID ResetSystemImage(VOID) {
   hpib_stop_bus();
 
   if (hCurrentFile>=0) {
@@ -92,43 +85,44 @@ VOID ResetSystemImage(VOID) {
   }
   bzero(&Chipset,sizeof(Chipset));
 
-  pbyRom = (LPBYTE)rom30;
-  Chipset.Rom = pbyRom;
-  Chipset.RomSize = 64*1024;
+  Chipset.Rom = (LPBYTE)rom30;
+  Chipset.RomSize = sizeof(rom30);
 
-  DestroyScreenBitmap();
+  fprintf(stderr,"CS %ld, %ld\n",sizeof(Chipset),sizeof(rom30));
+  
+  destroyScreenBitmap();
 
-  CreateScreenBitmap();
+  createScreenBitmap();
 
-  UpdateWindowStatus();
+  updateWindowStatus();
 }
 
-BOOL NewSystemImage(VOID) {
-  hpib_stop_bus();
+BOOL newSystemImage(VOID) {
 
-  ResetSystemImage();
+  fprintf(stderr,"newSystemImage\n");
 
-  NewSettingsProc(); // initial settings
+  resetSystemImage();
 
-  // allocate memory
+  newSettingsProc(); // initial settings
+
+  // allocate memory for RAM
   if (Chipset.Ram == NULL) {
     Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
   }
+  fprintf(stderr,"RamSize %d\n",Chipset.RamSize);
 
-  SystemReset();
+  systemReset();
+
   return TRUE;
- restore:
-
-  return FALSE;
 }
 
-BOOL OpenSystemImage(LPCTSTR szFilename) {
+BOOL openSystemImage(LPCTSTR szFilename) {
   INT   hFile = -1;
   DWORD lBytesRead,lSizeofChipset;
   BYTE  pbyFileSignature[SignatureLength];
   UINT  ctBytesCompared;
 
-  ResetSystemImage();
+  resetSystemImage();
 
   hFile = open(szFilename, O_RDWR);
   if (hFile < 0) {
@@ -188,15 +182,15 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
 
   Init_Keyboard();
 
-  SetSpeed(wRealSpeed);	// set speed
+  setSpeed(wRealSpeed);	// set speed
   
   strcpy(szCurrentFilename, szFilename);
   hCurrentFile = hFile;
 
-  Reload_Graph();
-  UpdateMainDisplay(TRUE);	// refresh screen alpha, graph & cmap
+  reloadGraph();
+  updateAlpha(TRUE);	// refresh screen alpha, graph & cmap
   hpib_names();
-  UpdateLeds(TRUE);
+  updateLeds(TRUE);
   return TRUE;
 
  read_err:
@@ -206,7 +200,7 @@ BOOL OpenSystemImage(LPCTSTR szFilename) {
   return FALSE;
 }
 
-BOOL SaveSystemImage(VOID) {
+BOOL saveSystemImage(VOID) {
   DWORD           lBytesWritten;
   DWORD           lSizeofChipset;
   UINT            nFSize=0;
@@ -240,7 +234,7 @@ BOOL SaveSystemImage(VOID) {
   return TRUE;
 }
 
-BOOL SaveSystemImageAs(LPCTSTR szFilename) {
+BOOL saveSystemImageAs(LPCTSTR szFilename) {
   INT hFile;
 
   if (hCurrentFile >= 0) {	// already file in use
@@ -254,8 +248,7 @@ BOOL SaveSystemImageAs(LPCTSTR szFilename) {
   }
   strcpy(szCurrentFilename, szFilename);	// save new file name
   hCurrentFile = hFile;				// and the corresponding handle
-  SetWindowTitle(szCurrentFilename);		// update window title line
-  UpdateWindowStatus();				// and draw it 
-  return SaveSystemImage();			// save current content
+  setWindowTitle(szCurrentFilename);		// update window title line
+  updateWindowStatus();				// and draw it 
+  return saveSystemImage();			// save current content
 }
-

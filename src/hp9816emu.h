@@ -14,15 +14,12 @@
 #define SM_INVALID	1
 #define SM_RETURN	2
 
-
-#define	ARRAYSIZEOF(a)	(sizeof(a) / sizeof(a[0]))
-#define	_KB(a)			((a)*1024)\
-  
 #define HARDWARE "Chipmunk" // emulator hardware
 
 // hp9816emu.c
 extern int      bKeeptime; // set system time
 extern int      bFPU;      // hp98635 floating point card enabled
+extern int      bPhosphor;
 extern int      bRamInd;   // Ram size index
 extern int      memSizes[];
 extern volatile unsigned int cpuCycles;
@@ -30,20 +27,21 @@ extern Window	hWnd;
 extern Display *dpy;
 
 extern pthread_t  cpuThread;			// system thread
-extern void	SetWindowTitle(LPTSTR szString);
-extern void	UpdateWindowStatus(VOID);
-extern void	ButtonEvent(BOOL state, UINT nId, int x, int y);
+extern void	setWindowTitle(LPTSTR szString);
+extern void	updateWindowStatus(VOID);
+extern void	buttonEvent(BOOL state, UINT nId, int x, int y);
 extern Pixmap   emuCreateBitMap(int w, int h);
 extern void     emuFreeBitMap(Pixmap);
 extern XImage  *emuCreateImage(int w, int h);
+extern XImage  *emuCreateImageFromBM(int w, int h, char *img);
 extern void     emuFreeImage(XImage *);
 extern Pixmap   emuLoadBitMap(LPCTSTR Name);
 extern void     emuBitBlt(Pixmap Dst, int, int, int, int,
 			  Pixmap Src, int, int,
 			  int op);
 extern void     emuPatBlt(Pixmap Dst, int, int, int, int, int op);
-extern Pixmap   emuCreateBitMapFromData(int w, int h, unsigned int data[]);
-extern XImage  *emuCreateBMImage(int w, int h, unsigned short data[]);
+extern Pixmap   emuCreateBitMapFromImage(int w, int h, XImage *xim);
+extern XImage  *emuGetImage(Pixmap bm, int w, int h);
 extern void     emuImgBlt(Pixmap dst, GC gc, int dx0, int dy0, int w, int h, XImage *src, int sx0, int sy0, int op);
 extern void     emuPutImage(Pixmap dst, int dx0, int dy0, int w, int h, XImage *src, int op);
 extern void     emuSetColours(unsigned int fg, unsigned int bg);
@@ -52,7 +50,6 @@ extern void     emuUpdateButton(int hpibAddr, int unit, char * lifVolume);
 extern void     emuUpdateDisk(int, char *);
 extern void     emuUpdateLed(int,int);
 extern void     emuFlush();
-static int      OnFileOpen(VOID);
 
 // Display.c
 extern UINT	bgX;
@@ -63,30 +60,28 @@ extern UINT	scrX;
 extern UINT	scrY;
 
 extern unsigned short fontBM[];  // actual bitmap
-extern Pixmap	hFontBM;	// alpha font
 extern Pixmap	hAlpha1BM;	// display alpha 1
 extern Pixmap	hAlpha2BM;	// display alpha 2 (for blink)
 extern XImage  *hGraphImg;	// display graph
 extern Pixmap	hScreenBM;      // main window bitmap
 
-extern VOID	SetScreenColor(UINT nId, UINT nRed, UINT nGreen, UINT nBlue);
-extern VOID	SetGraphColor(BYTE col);
-extern VOID	CreateScreenBitmap(VOID);
-extern VOID	DestroyScreenBitmap(VOID);
-extern BOOL	CreateMainBitmap(LPCTSTR szFilename);
-extern VOID	DestroyMainBitmap(VOID);
-extern VOID	UpdateLeds(BOOL bForce);
-extern VOID	Refresh_Display(BOOL bforce);	// refresh altered part of display at vsync
-extern VOID	UpdateMainDisplay(BOOL bforce);	// refresh altered part of display at vsync
-extern VOID	Reload_Graph(VOID);		// reload graph bitmap from graph mem
-extern BYTE	Write_Display16(BYTE *a, WORD d, BYTE s);       // for alpha part
-extern BYTE	Read_Display16(BYTE *a, WORD d, BYTE s);
-extern BYTE	Write_Graph16(BYTE *a, WORD d, BYTE s);		// for graph part
-extern BYTE	Read_Graph16(BYTE *a, WORD d, BYTE s);
-extern VOID	Refresh_Display16(BOOL bforce);			// refresh altered part of display at vsync
-extern VOID	UpdateMainDisplay16(BOOL force);
-extern VOID	do_display_timers16(VOID);
-extern VOID	Reload_Graph16(VOID);								
+extern VOID     mkFontBM(int);
+extern VOID     testFont();
+extern VOID	setGraphColor(BYTE col);
+extern VOID	createScreenBitmap(VOID);
+extern VOID	destroyScreenBitmap(VOID);
+extern BOOL	createMainBitmap(LPCTSTR szFilename);
+extern VOID	destroyMainBitmap(VOID);
+extern VOID	updateLeds(BOOL bForce);
+extern VOID	refreshDisplay(BOOL bforce);	// refresh altered part of display at vsync
+extern VOID	updateAlpha(BOOL bforce);	// refresh altered part of display at vsync
+extern VOID	reloadGraph(VOID);		// reload graph bitmap from graph mem
+extern BYTE	readDisplay(BYTE *a, WORD d, BYTE s);
+extern BYTE	writeDisplay(BYTE *a, WORD d, BYTE s);  // write into display memory
+extern BYTE	readAlpha(BYTE *a, WORD d, BYTE s);
+extern BYTE	readGraph(BYTE *a, WORD d, BYTE s);
+extern BYTE	writeGraph(BYTE *a, WORD d, BYTE s);	// for graph part
+extern VOID	doDisplayTimers(VOID);
 
 // cpu9816.c
 extern BOOL	bInterrupt;
@@ -101,11 +96,11 @@ extern WORD	wInstrSize;
 extern WORD	wInstrWp;
 extern WORD	wInstrRp;
 extern long	dwVsyncRef;
-extern VOID	SetSpeed(WORD wAdjust);
-extern UINT	SwitchToState(UINT nNewState);
-extern void    *CpuEmulator(void *);
-extern void	SetHPTime(VOID);
-
+extern VOID	setSpeed(WORD wAdjust);
+extern UINT	switchToState(UINT nNewState);
+extern void    *cpuEmulator(void *);
+extern void	setHPTime(VOID);
+extern int       checkChipset();
 // fetch.c
 extern VOID	EvalOpcode(BYTE newI210);
 extern VOID	initOP(VOID);
@@ -114,26 +109,12 @@ extern VOID	initOP(VOID);
 extern TCHAR	szCurrentDirectory[MAX_PATH];
 extern TCHAR	szCurrentFilename[MAX_PATH];
 extern TCHAR	szBufferFilename[MAX_PATH];
-extern LPBYTE	pbyRom;
 extern VOID	SetWindowLocation(Window hWnd,INT nPosX,INT nPosY);
-extern BOOL	PatchRom(LPCTSTR szFilename);
-extern BOOL	MapRom(LPCTSTR szRomDirectory);
-extern VOID	UnmapRom(VOID);
-extern VOID	ResetSystemImage(VOID);
-extern BOOL	NewSystemImage(VOID);
-extern BOOL	OpenSystemImage(LPCTSTR szFilename);
-extern BOOL	SaveSystemImage(VOID);
-extern BOOL	SaveSystemImageAs(LPCTSTR szFilename);
-extern BOOL	SaveBackup(VOID);
-extern BOOL	RestoreBackup(VOID);
-extern BOOL	ResetBackup(VOID);
-extern BOOL	GetSaveLifFilename(VOID);
-extern BOOL	GetSaveDiskFilename(LPCTSTR lpstrName);
-extern BOOL	LoadLif(LPCTSTR szFilename);
-extern BOOL	SaveLif(LPCTSTR szFilename);
-extern BOOL	LoadDisk(LPCTSTR szFilename);
-extern BOOL	SaveDisk(LPCTSTR szFilename);
-extern Pixmap	LoadBitmapFile(LPCTSTR szFilename);
+extern VOID	resetSystemImage(VOID);
+extern BOOL	newSystemImage(VOID);
+extern BOOL	openSystemImage(LPCTSTR szFilename);
+extern BOOL	saveSystemImage(VOID);
+extern BOOL	saveSystemImageAs(LPCTSTR szFilename);
 
 // hp-ib.c
 extern BYTE Write_HPIB(BYTE *a, WORD d, BYTE s);// write in HPIB I/O space
@@ -197,7 +178,7 @@ extern BYTE Write_98626(BYTE *a, WORD d, BYTE s);	// write in HP98626 I/O space
 extern BYTE Read_98626(BYTE *a, WORD d, BYTE s);	// read in HP98626 I/O space
 
 // mops.c
-extern VOID SystemReset(VOID);				// reset system as power on
+extern VOID systemReset(VOID);				// reset system as power on
 extern WORD GetWORD(DWORD d);				// read a word in RAM/ROM for external purpose
 extern BYTE ReadMEM(BYTE *a, DWORD d, BYTE s);		// read on system bus 
 extern BYTE WriteMEM(BYTE *a, DWORD d, BYTE s);		// write on system bus
@@ -242,13 +223,3 @@ extern VOID Init_Keyboard(VOID);			// at re-load sys image
               
 #define ID_H740_LOAD   61 
 #define ID_H740_EJECT  63
-
-
-// Missing Win32 API calls
-static __inline LPTSTR DuplicateString(LPCTSTR szString) {
-	UINT   uLength = strlen(szString) + 1;
-	LPTSTR szDup   = malloc(uLength*sizeof(szDup[0]));
-	strcpy(szDup,szString);
-	return szDup;
-}
-

@@ -1,6 +1,5 @@
 /*
  *   Mops.h
- *
  *   Copyright 2010-2011 Olivier De Smet
  */
 

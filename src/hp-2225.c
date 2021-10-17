@@ -126,10 +126,8 @@ BOOL hp2225_push_d(VOID *controler, BYTE d, BYTE eoi)	// push on stack ctrl->hd
 //#
 //################
 
-VOID DoHp2225(HP2225 *ctrl)
-{
+VOID DoHp2225(HP2225 *ctrl) {
   BYTE c, eoi;
-  int l;
 
   if (pop_c(ctrl, &c)) {
     if (c == 0x04) {			// IFC
@@ -146,8 +144,8 @@ VOID DoHp2225(HP2225 *ctrl)
   }
 }
 
-BOOL hp2225_save(HP2225 *ctrl)
-{
+BOOL hp2225_save(HP2225 *ctrl) {
+  
   if (ctrl->hfile != -1) {
     close(ctrl->hfile);
     ctrl->hfile = -1;
@@ -156,14 +154,12 @@ BOOL hp2225_save(HP2225 *ctrl)
   return TRUE;
 }
 
-BOOL hp2225_eject(HP2225 *ctrl)
-{
+BOOL hp2225_eject(HP2225 *ctrl) {
   hp2225_save(ctrl);
   return TRUE;
 }
 
-BOOL hp2225_widle(HP2225 *ctrl)
-{
+BOOL hp2225_widle(HP2225 *ctrl) {
   return FALSE;							// hp2225 is idle
 }
 
@@ -171,14 +167,14 @@ VOID hp2225_reset(void *controler) {
   HP2225 *ctrl = (HP2225 *) controler;
   DWORD k;
 
-  //	ctrl->st2225 = 0;					// state of hp2225 controller
-  ctrl->talk = FALSE;						// MTA received ?
-  ctrl->listen = FALSE;						// MLA received ?
-  ctrl->ppol_e = TRUE;						// parallel poll enabled
-  ctrl->hc_hi = 0;						// hi mark
-  ctrl->hc_lo = 0;						// lo mark
-  ctrl->hd_hi = 0;						// hi mark
-  ctrl->hd_lo = 0;						// lo mark
+  //	ctrl->st2225 = 0;			// state of hp2225 controller
+  ctrl->talk = FALSE;				// MTA received ?
+  ctrl->listen = FALSE;				// MLA received ?
+  ctrl->ppol_e = TRUE;				// parallel poll enabled
+  ctrl->hc_hi = 0;				// hi mark
+  ctrl->hc_lo = 0;				// lo mark
+  ctrl->hd_hi = 0;				// hi mark
+  ctrl->hd_lo = 0;				// lo mark
   
   if (ctrl->hfile == -1) {
     k = sprintf(ctrl->name, "printer-%03d.txt", ctrl->fn);

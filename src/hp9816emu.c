@@ -29,6 +29,7 @@
 BOOL        bAutoSave = FALSE;
 BOOL        bAutoSaveOnExit = FALSE;
 BOOL        bDisplayLog = TRUE;
+int         bPhosphor   = 1;   /* white=0, green=1, amber=2 */
 int         bFPU = TRUE;
 int         bRamInd = 1; // 512K
 #define     MEM_SZ_CNT 6
@@ -40,14 +41,14 @@ int         bKeeptime = TRUE;
 pthread_t   cpuThread = 0;
 Window      hWnd=0;
 
-static int OnKey(int,unsigned int, int);
-static int OnMouseWheel(UINT nFlags, WORD x, WORD y);
-static int OnFileSaveAs(VOID);
+static int ret;
+static int onKey(int,unsigned int, int);
+static int onMouseWheel(UINT nFlags, WORD x, WORD y);
+static int onFileSaveAs(VOID);
+static int onFileOpen(VOID);
 static void emuSetEvents(EZ_Widget *);
 
 static EZ_Widget *toplevel = NULL;     /* toplevel frame           */
-static EZ_Widget *emulator = NULL;     /* vt emulator              */
-static EZ_Widget *flistBox = NULL;     /* font lister              */
 static EZ_Widget *fileSelector = NULL; /* image selector           */
 /* Settings menu */
 static EZ_Widget *settingsMenu = NULL; /* general settings menu    */
@@ -55,17 +56,16 @@ static EZ_Widget *seButton = NULL;     /* settings button          */
 static EZ_Widget *memSel;              /* memory size selector     */
 static EZ_Widget *fpuBtn;
 static EZ_Widget *timBtn;
+static EZ_Widget *pBtnW, *pBtnG, *pBtnA;
+/* Menu bar */
 static EZ_Widget *mhzLed;
 static EZ_Widget *fpuLed;
-static EZ_Widget *memLabel;
 /* Speed menu */
 static EZ_Widget *spButton = NULL;     /* speed selector button    */
 static EZ_Widget *speedMenu = NULL;    /* speed setting menu       */
-static EZ_Widget *speedButton[6];      /* speed selection buttons  */
 /* System image menu */
 static EZ_Widget *siButton = NULL;     /* system immage button     */
 static EZ_Widget *siMenu   = NULL;     /* system immage menu       */
-static EZ_Widget *siName;              /* system image name widget */
 static int        siMenuPosted = 0;    /* sys img menu posted flag */
 static char       imageFile[256];      /* image file name          */
 /* Run button */
@@ -81,7 +81,7 @@ static EZ_Widget *cpuStatus;
 
 /* Display variables */
 static EZ_Widget *workArea;            /* the 9816 display area    */
-static int        emuInit = 0, panelInit = 0;
+static int        emuInit = 0;
 Display          *dpy;                 /* the display */
 static GC         dispGC;
 static XGCValues  gcvalues;
@@ -129,64 +129,66 @@ void emuPutImage(Pixmap dst, int dx0, int dy0, int w, int h, XImage *src, int op
 
 Pixmap emuCreateBitMap(int w, int h) {
   Pixmap imagePixmap=0;
-  fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
+  // fprintf(stderr,"emuCreateBitMap %d %d\n",w,h);
   imagePixmap = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
   return imagePixmap;
 }
 
-Pixmap emuCreateBitMapFromData(int w, int h, unsigned int data[]) {
+Pixmap emuCreateBitMapFromImage(int w, int h, XImage *xim) {
   Pixmap p;
-  XImage *xim = XCreateImage(dpy, EZ_GetVisual(), EZ_GetDepth(), ZPixmap, 0,(char *) data, w, h, 32, w*4);
   p = XCreatePixmap(dpy, hWnd, w, h, EZ_GetDepth());
-  XPutImage(dpy, p, dispGC, xim, 0,0,0,0, w,h);
+  // fprintf(stderr,"CBMFD:w %d h %d xim 0x%08lx pix 0x%08lx \n", w, h, (unsigned long)xim, p);
   return p;
-}
-
-XImage *emuCreateBMImage(int w, int h, unsigned short data[]) {
-  XImage *ret;
-  Pixmap p;
-  char * img =  (char *)&data[0];
-  p = XCreateBitmapFromData(dpy , hWnd ,img, w , h);
-  ret = XGetImage(dpy , p , 0 , 0 , w, h, 1 , XYPixmap ) ;
-  ret->format = XYBitmap;
-  ret->bitmap_unit = 8;
-  return ret;
 }
 
 Pixmap emuLoadBitMap(LPCTSTR fn) {
   unsigned int w,h;
   Pixmap imagePixmap=0;
-  fprintf(stderr,"emuLoadImage %s\n",fn);
+  // fprintf(stderr,"emuLoadImage %s\n",fn);
   EZ_CreateXPixmapFromImageFile((char *)fn, &w, &h, &imagePixmap);
   return imagePixmap;
 }
 
 void emuFreeBitMap(Pixmap bm) {
-  XFreePixmap(dpy,bm);
+  ret =  XFreePixmap(dpy,bm);
+  // fprintf(stderr,"emuFreeBitMap: %d\n",ret);
 }
 
-XImage *emuCreateImage(int x, int y) {
+XImage *emuCreateImage(int w, int h) {
   char *img;
-  img = malloc(x*y*4);
-  fprintf(stderr,"emuCreateImage %d %d\n",x,y);
-  return XCreateImage(dpy, EZ_GetVisual() ,EZ_GetDepth(), ZPixmap,
-		      0, img, x, y, 32, 0);
+  img = malloc(w*h*4);
+  // fprintf(stderr,"emuCreateImage %d %d\n", w, h);
+  return XCreateImage(dpy, XDefaultVisual(dpy, EZ_GetScreen()) ,EZ_GetDepth(), ZPixmap,
+		      0, img, w, h, 32, 0);
+}
+
+XImage *emuCreateImageFromBM(int w, int h, char *img) {
+  // fprintf(stderr,"emuCreateImageFromBM %d %d\n", w, h);
+  return XCreateImage(dpy, XDefaultVisual(dpy, EZ_GetScreen()) ,EZ_GetDepth(), ZPixmap,
+		      0, img, w, h, 32, 0);
+}
+
+XImage *emuGetImage(Pixmap bm, int w, int h) {
+  // fprintf(stderr,"emuGetImage %d %d\n", w, h);
+  return XGetImage(dpy, bm, 0, 0, w, h, AllPlanes, ZPixmap);
 }
 
 void emuSetColours(unsigned int fg, unsigned int bg) {
+  fprintf(stderr,"emuSetColours: 0x%08x 0x%08x\n",fg, bg);
   XSetBackground(dpy,dispGC,bg);
   XSetForeground(dpy,dispGC,fg);
 }
 
 void emuFreeImage(XImage *img) {
-  XDestroyImage(img);
+  ret = XDestroyImage(img);
+  // fprintf(stderr,"emuFreeImage: %d\n",ret);
 }
 
 void emuSetWidgetPosition(EZ_Widget *parent, EZ_Widget *move, int x, int y) {
   // really move relative to parent
   int px,py,pw,ph;
   EZ_GetWidgetAbsoluteGeometry(parent, &px, &py, &pw, &ph);
-  fprintf(stderr,"emuSetWidgetPosition px %d, py %d, pw %d, ph %d\n",px,py,pw,ph);
+  //  fprintf(stderr,"emuSetWidgetPosition px %d, py %d, pw %d, ph %d\n",px,py,pw,ph);
   EZ_MoveWidgetWindow(move,x+px+pw,y+py+ph);
   emuFlush();
 }
@@ -200,24 +202,22 @@ static void hp9816emuComputeSize(EZ_Widget *widget, int *w, int *h) {
 }
 
 static void hp9816emuDraw(EZ_Widget *widget) {
-  RECT rc;
-  fprintf(stderr,"hp9816emuDraw\n");
-  rc.left = rc.top = 0;
-  rc.bottom = bgH;
-  rc.right  = bgW;
+  //  fprintf(stderr,"hp9816emuDraw\n");
   if (!emuInit) {
     hWnd = EZ_GetWidgetWindow(widget); /* widget window */
-    XMapWindow(dpy, hWnd);
     /* GC for graphics and alpha display operations */
-    gcvalues.function = GXcopy;
+    gcvalues.function = GXclear;
     gcvalues.graphics_exposures = 0;
-    dispGC = XCreateGC(dpy, hWnd, GCGraphicsExposures | GCFunction, &gcvalues);
+    gcvalues.plane_mask = AllPlanes;
+    dispGC = XCreateGC(dpy, hWnd, GCPlaneMask | GCGraphicsExposures | GCFunction, &gcvalues);
+    XFillRectangle(dpy, hWnd, dispGC, 0, 0, bgW, bgH);
+    // XMapWindow(dpy, hWnd);
     emuSetEvents(widget);
     emuInit = 1;
     return;
   } else {
     // redraw main display area
-    Refresh_Display(TRUE);
+    refreshDisplay(TRUE);
   }
 }
 
@@ -235,8 +235,8 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
     y = event->xbutton.y;
     //fprintf(stderr,"Button press %d\n",event->xbutton.button);
     switch (event->xbutton.button) {
-    case Button4: OnMouseWheel(-1,x,y); break;
-    case Button5: OnMouseWheel( 1,x,y); break;
+    case Button4: onMouseWheel(-1,x,y); break;
+    case Button5: onMouseWheel( 1,x,y); break;
     default:;
     }
     break;
@@ -245,13 +245,13 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
     y = event->xbutton.y;
     //fprintf(stderr,"Button Release %d\n",event->xbutton.button);
     switch (event->xbutton.button) {
-    case Button4: OnMouseWheel(-1,x,y); break;
-    case Button5: OnMouseWheel( 1,x,y); break;
+    case Button4: onMouseWheel(-1,x,y); break;
+    case Button5: onMouseWheel( 1,x,y); break;
     default:;
     }
     break;
-  case KeyPress:   OnKey(1, event->xkey.keycode, event->xkey.state); break;
-  case KeyRelease: OnKey(0, event->xkey.keycode, event->xkey.state); break;
+  case KeyPress:   onKey(1, event->xkey.keycode, event->xkey.state); break;
+  case KeyRelease: onKey(0, event->xkey.keycode, event->xkey.state); break;
   default:
     // fprintf(stderr,"Unexpected event type %d\n",event->type);
   }
@@ -262,10 +262,8 @@ static void hp9816emuEventHandler(EZ_Widget *widget, XEvent *event) {
 
 static double tstart = 0.0;
 static int tfpu = 0;
-static int tmem = 0;
 static void timerCB(EZ_Timer *t, void *p) {
   struct timeval tv;
-  int lfpu;
   double mtime,itime,ticks,mhz;
   char buf[64];
 
@@ -275,6 +273,7 @@ static void timerCB(EZ_Timer *t, void *p) {
   mtime = tv.tv_sec*1e6L + tv.tv_usec;
   if (tstart==0.0) tstart = mtime;
   else {
+    if (!checkChipset()) fprintf(stderr,"Chipset memory corruption\n");
     itime  = mtime - tstart;
     tstart = mtime;
     mhz = ticks/itime;
@@ -312,7 +311,7 @@ static void emuSetEvents(EZ_Widget *widget) {
 static void quitCB(EZ_Widget *w, void *d) {
   int retval;
   if (cpuThread) {
-    SwitchToState(SM_RETURN);
+    switchToState(SM_RETURN);
     pthread_join(cpuThread, (void **)&retval);
     fprintf(stderr,"CPU thread stopped\n");
   }
@@ -333,14 +332,11 @@ static void runCB(EZ_Widget *w, void *d) {
       emuInfoMessage("runCB: cpu already in run state\n");
       return;
     }
-    if (pbyRom) {
-      SwitchToState(SM_RUN); 
-      EZ_SetFocusTo(workArea);// Send keyboard events to emulator
-    }	
-    else EZ_SetCheckButtonState(w,EZ_CHECK_BUTTON_ON_OFF);
+    switchToState(SM_RUN); 
+    EZ_SetFocusTo(workArea);// Send keyboard events to emulator
   } else {
     if (nState != SM_RUN) return;
-    SwitchToState(SM_INVALID);
+    switchToState(SM_INVALID);
   }
 }
 
@@ -360,16 +356,16 @@ static void setBufferFilename(EZ_Widget *widget, void *d) {
 }
 
 static void setupFileSelector() {
- EZ_Widget *jnk, *ok, *filter, *cancel, *scaleBtn;
- fileSelector = EZ_CreateWidget(EZ_WIDGET_FILE_SELECTOR, NULL,
-				EZ_CALLBACK, setBufferFilename, NULL,
-				EZ_SIZE,     400, 400,
-				EZ_TRANSIENT, EZ_TRUE,
-				0);
- EZ_GetFileSelectorWidgetComponents(fileSelector, &jnk, &jnk, &jnk, &jnk,
-				    &ok, &filter, &cancel);
- EZ_ConfigureWidget(ok, EZ_LABEL_STRING, "OK", NULL);
- EZ_ConfigureWidget(cancel, EZ_LABEL_STRING, "Cancel", NULL);
+  EZ_Widget *jnk, *ok, *filter, *cancel;
+  fileSelector = EZ_CreateWidget(EZ_WIDGET_FILE_SELECTOR, NULL,
+				 EZ_CALLBACK, setBufferFilename, NULL,
+				 EZ_SIZE,     400, 400,
+				 EZ_TRANSIENT, EZ_TRUE,
+				 0);
+  EZ_GetFileSelectorWidgetComponents(fileSelector, &jnk, &jnk, &jnk, &jnk,
+				     &ok, &filter, &cancel);
+  EZ_ConfigureWidget(ok, EZ_LABEL_STRING, "OK", NULL);
+  EZ_ConfigureWidget(cancel, EZ_LABEL_STRING, "Cancel", NULL);
 }
 
 static void showFileSelector(EZ_Widget *notused, void *d) {
@@ -378,13 +374,21 @@ static void showFileSelector(EZ_Widget *notused, void *d) {
 }
 
 void okCB(EZ_Widget *widget, void *data) {
+  int phos;
   EZ_Widget *parent = data;
   EZ_HideWidget(parent);
+  
+  phos = EZ_GetRadioButtonGroupVariableValue(pBtnW);
+  // fprintf(stderr,"Phosphor: %d  bP %d\n",phos ,bPhosphor);
+  if (phos != bPhosphor) { 
+    bPhosphor = phos;
+  } else testFont(); 
 }
 
 void settingsCB(EZ_Widget *w, void *data) {
   EZ_SetCheckButtonState(fpuBtn,bFPU);
   EZ_SetCheckButtonState(timBtn,bKeeptime);
+  EZ_SetRadioButtonGroupVariableValue(pBtnW, bPhosphor);
   EZ_DisplayWidget(settingsMenu);
   emuSetWidgetPosition(seButton, settingsMenu,-32,0);
   EZ_RaiseWidgetWindow(settingsMenu);
@@ -396,8 +400,8 @@ void speedMenuCB(EZ_Widget *w, void *data) {
 
 void speedCB(EZ_Widget *w, void *data) {
   int speed = EZ_GetRadioButtonGroupVariableValue(w);
-  fprintf(stderr,"speedCB %d\n",speed);
-  SetSpeed(speed);
+  // fprintf(stderr,"speedCB %d\n",speed);
+  setSpeed(speed);
   wRealSpeed = speed;
 }
 
@@ -411,7 +415,7 @@ static void genCB(EZ_Widget *w, void *d) {
   EZ_GetCheckButtonState(w,&s);
   switch (b) {
   case 0: bAutoSave = s; break;
-  case 1: bAutoSaveOnExit; break;
+  case 1: bAutoSaveOnExit = s; break;
   default: fprintf(stderr,"Unknown id %ld in genCB\n",b);
   }
 }
@@ -426,7 +430,7 @@ static void fpuCB(EZ_Widget *w, void *d) {
   int s;
   EZ_GetCheckButtonState(w,&s);
   bFPU = s;
-  fprintf(stderr, "bFPU now %d\n",bFPU);
+  // fprintf(stderr, "bFPU now %d\n",bFPU);
 }
 
 static void cancelCB(EZ_Widget *widget, void *data) {
@@ -437,7 +441,7 @@ static void cancelCB(EZ_Widget *widget, void *data) {
 
 void emuInfoMessage(char *str) {
 
-  EZ_Widget  *toplevel, *frame, *label, *restart, *quit;	      
+  EZ_Widget  *toplevel, *frame,  *quit;	      
 
   toplevel = EZ_CreateWidget(EZ_WIDGET_FRAME,   NULL,
 			     EZ_LABEL_STRING,   " ",
@@ -449,7 +453,7 @@ void emuInfoMessage(char *str) {
 			     EZ_FILL_MODE,       EZ_FILL_BOTH,
 			     NULL);
 
-  label  =   EZ_CreateWidget(EZ_WIDGET_LABEL,    toplevel,
+  EZ_CreateWidget(EZ_WIDGET_LABEL,    toplevel,
 			     EZ_LABEL_STRING,    str,
 			     EZ_TEXT_LINE_LENGTH, 60,
 			     EZ_JUSTIFICATION,    EZ_CENTER,
@@ -486,18 +490,20 @@ void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
   default:
     fprintf(stderr,"emuUpdateButton: Invalid Add: %d unit %d\n", hpibAddr, unit);
   }
-  fprintf(stderr,"Add: %d unit %d, volId %d vol <%s>\n", hpibAddr, unit, volId, lifVolume);
-  if (lifVolume[0] == 0x00) {
+  //  fprintf(stderr,"Addr: %d unit %d, volId %d vol <%s>\n", hpibAddr, unit, volId, lifVolume);
+  if (!lifVolume) {
     sprintf(buf,"Unit %d",unit);
     lifVolume = buf;
     col = "black";
+  } else if (lifVolume[0] == 0x00) {
+    sprintf(buf,"Unit %d",unit);
+    lifVolume = buf;
   }
   EZ_ConfigureWidget(volumeLabels[volId],EZ_FOREGROUND, col, EZ_LABEL_STRING, lifVolume, 0);
-    
 }
 
 void emuUpdateDisk(int diskNo, char * name) {
-  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
+  //  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
 }
 
 
@@ -510,7 +516,6 @@ void emuUpdateLed(int id, int status) {
   }
 }
 
-
 static void setupSpeedMenu() {
 
   speedMenu = EZ_CreateSimpleMenu("8Mhz %r[2,1,1] %f|16MHz %r[2,2,1] %f|24Mhz%r[2,3,1]%f|"
@@ -519,8 +524,6 @@ static void setupSpeedMenu() {
 				  speedCB, NULL, speedCB, NULL);
 
   EZ_ConfigureWidget(speedMenu, EZ_MENU_TEAR_OFF, 0, NULL);
-
-
 }
 
 static char *selectMem(int last, int current, void *data) {
@@ -532,106 +535,137 @@ static char *selectMem(int last, int current, void *data) {
 }
 
 static void setupSettingsMenu() {
-  EZ_Widget *tmp, *memFrame, *genFrame, *fpuFrame;
+  EZ_Widget *sysFrame, *memFrame,*fpuFrame, *genFrame, *btnFrame;
 
   settingsMenu = EZ_CreateWidget(EZ_WIDGET_FRAME,         NULL,
 				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
 				 EZ_TRANSIENT,            EZ_TRUE,
 				 EZ_SIDE,                 EZ_LEFT,
+				 EZ_FILL_MODE,            EZ_FILL_BOTH,
 				 NULL);
-
-  memFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
+ 
+  sysFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
 				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_GROOVE,
+				 EZ_LABEL_STRING,         "System Image Settings",
 				 EZ_SIDE,                 EZ_LEFT,
 				 NULL);
 
-  tmp          = EZ_CreateWidget(EZ_WIDGET_LABEL,         memFrame,
+  memFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         sysFrame,
+				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
 				 EZ_LABEL_STRING,         "Memory Size",
-				 EZ_JUSTIFICATION,        EZ_LEFT,
+				 EZ_SIDE,                 EZ_LEFT,
 				 NULL);
 
   memSel       = EZ_CreateWidget(EZ_WIDGET_SPIN_BUTTON,   memFrame,
 				 EZ_SPIN_VALUE,           bRamInd, "512 KB",
 				 EZ_SPIN_FUNCTION,        selectMem, NULL,
 				 NULL);
-  
-  genFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
+
+  fpuFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         sysFrame,
 				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_GROOVE,
-				 EZ_SIDE,                 EZ_LEFT,
-				 NULL);
-
-  tmp          = EZ_CreateWidget(EZ_WIDGET_LABEL,         genFrame,
-				 EZ_LABEL_STRING,         "General Settings",
+				 EZ_LABEL_STRING,        "HP98635 Floating Point",
 				 EZ_JUSTIFICATION,        EZ_LEFT,
-				 NULL);
-  
-  timBtn       = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
-				 EZ_LABEL_STRING,         "Set system time",
-				 EZ_CALLBACK,             timCB, 0,
-				 0);
-  
-  tmp          = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
-				 EZ_LABEL_STRING,         "Auto save system image",
-				 EZ_CALLBACK,             genCB, 0,
-				 0);
-
-  tmp          = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
-				 EZ_LABEL_STRING,         "Auto save on exit",
-				 EZ_CALLBACK,             genCB, 1,
-				 0);
-
-  fpuFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
-				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
-				 EZ_BORDER_WIDTH,         4,
-				 EZ_BORDER_TYPE,          EZ_BORDER_GROOVE,
 				 EZ_SIDE,                 EZ_LEFT,
-				 NULL);
-
-  tmp          = EZ_CreateWidget(EZ_WIDGET_LABEL,         fpuFrame,
-				 EZ_LABEL_STRING,         "HP98635 Floating point card",
-				 EZ_JUSTIFICATION,        EZ_LEFT,
 				 NULL);
 
   fpuBtn       = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  fpuFrame,
-				 EZ_BORDER_WIDTH,         4,
+				 //				 EZ_BORDER_WIDTH,         4,
 				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
 				 EZ_LABEL_STRING,         "Enabled",
 				 EZ_CALLBACK,             fpuCB, 0,
 				 0);
 		      
-  tmp          = EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON, settingsMenu,
-				 EZ_LABEL_STRING,         "OK",
-				 EZ_UNDERLINE,            0,
-				 EZ_CALLBACK,             okCB, settingsMenu,
-				 NULL );
+ 
+  genFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
+				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
+				 EZ_LABEL_STRING,         "General Settings",
+				 EZ_FILL_MODE,            EZ_FILL_BOTH,
+				 EZ_SIDE,                 EZ_CENTER,
+				 NULL);
 
+  timBtn       = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
+				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
+				 EZ_LABEL_STRING,         "Set system time",
+				 EZ_CALLBACK,             timCB, 0,
+				 0);
+
+  EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
+				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
+				 EZ_LABEL_STRING,         "Auto save system image",
+				 EZ_CALLBACK,             genCB, 0,
+				 0);
+  
+  EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
+				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
+				 EZ_LABEL_STRING,         "Auto save on exit",
+				 EZ_CALLBACK,             genCB, 1,
+				 0);
+
+  btnFrame  = EZ_CreateWidget(EZ_WIDGET_FRAME,      genFrame,
+			      EZ_WIDTH,             100,
+			      EZ_LABEL_STRING,     "Phosphor",
+			      EZ_ORIENTATION,       EZ_VERTICAL,
+			      EZ_FILL_MODE,         EZ_FILL_NONE,
+			      EZ_SIDE,              EZ_CENTER,
+			      NULL);
+   
+  pBtnW  = EZ_CreateWidget(EZ_WIDGET_RADIO_BUTTON,   btnFrame,
+			   EZ_LABEL_STRING,          "White",
+			   EZ_BORDER_WIDTH,          1,
+			   EZ_BORDER_TYPE,           EZ_BORDER_UP,
+			   EZ_RADIO_BUTTON_GROUP,    3,
+			   EZ_RADIO_BUTTON_VALUE,    0,
+			   EZ_INDICATOR_COLOR,       "white",
+			   EZ_INDICATOR_TYPE,        EZ_SQUARE_INDICATOR,
+			   EZ_INDICATOR_SIZE_ADJUST, 5,
+			   NULL);
+
+  
+  pBtnG  = EZ_CreateWidget(EZ_WIDGET_RADIO_BUTTON,    btnFrame,
+			   EZ_LABEL_STRING,           "Green",
+			   EZ_BORDER_WIDTH,           0,
+			   EZ_BORDER_TYPE,            EZ_BORDER_UP,
+			   EZ_RADIO_BUTTON_GROUP,     3,
+			   EZ_RADIO_BUTTON_VALUE,     1,
+			   EZ_INDICATOR_COLOR,        "green",
+			   EZ_INDICATOR_TYPE,         EZ_SQUARE_INDICATOR,
+			   EZ_INDICATOR_SIZE_ADJUST,  5,
+			   NULL);
+
+  pBtnA  = EZ_CreateWidget(EZ_WIDGET_RADIO_BUTTON,    btnFrame,
+			   EZ_LABEL_STRING,           "Amber",
+			   EZ_BORDER_WIDTH,           1,
+			   EZ_BORDER_TYPE,            EZ_BORDER_UP,
+			   EZ_RADIO_BUTTON_GROUP,     3,
+			   EZ_RADIO_BUTTON_VALUE,     2,
+			   EZ_INDICATOR_COLOR,        "#ffaa00",
+			   EZ_INDICATOR_TYPE,         EZ_SQUARE_INDICATOR,
+			   EZ_INDICATOR_SIZE_ADJUST,  5,
+			   NULL);
+
+  
+  EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON, settingsMenu,
+		  EZ_LABEL_STRING,         "OK",
+		  EZ_UNDERLINE,            0,
+		  EZ_CALLBACK,             okCB, settingsMenu,
+		  NULL);
 }
 
 //
 // ID_9122_LOAD
 //
-static int On9122Load(HPSS80 *ctrl, BYTE byUnit) {
+static int on9122Load(HPSS80 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
     emuInfoMessage("The emulator must be running to load a Disk.");
     goto cancel;
   }
   if (hp9122_widle(ctrl)) {						// wait for idle hp9122 state
-    emuInfoMessage(_T("The HP9122 is busy."));
+    emuInfoMessage("The HP9122 is busy.");
     goto cancel;
   } 
   hp9122_load(ctrl, byUnit, szBufferFilename);
-  UpdateWindowStatus();
+  updateWindowStatus();
  cancel:
   return 0;
 }
@@ -639,14 +673,14 @@ static int On9122Load(HPSS80 *ctrl, BYTE byUnit) {
 //
 // ID_9122_SAVE
 //
-static int On9122Save(HPSS80 *ctrl, BYTE byUnit) {
+static int on9122Save(HPSS80 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to save a Disk."));
+    emuInfoMessage("The emulator must be running to save a Disk.");
     goto cancel;
   }
   if (hp9122_widle(ctrl))	{			// wait for idle hp9122 state
-    emuInfoMessage(_T("The HP9122 is busy."));
+    emuInfoMessage("The HP9122 is busy.");
     goto cancel;
   }
   _ASSERT(ctrl->name[byUnit][0] != 0x00);
@@ -658,18 +692,18 @@ static int On9122Save(HPSS80 *ctrl, BYTE byUnit) {
 //
 // ID_9122_EJECT
 //
-static int On9122Eject(HPSS80 *ctrl, BYTE byUnit) {
+static int on9122Eject(HPSS80 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to eject a Disk."));
+    emuInfoMessage("The emulator must be running to eject a Disk.");
     goto cancel;
   }
   if (hp9122_widle(ctrl))	{			// wait for idle hp9122 state
-    emuInfoMessage(_T("The HP9122 is busy."));
+    emuInfoMessage("The HP9122 is busy.");
     goto cancel;
   }
   hp9122_eject(ctrl, byUnit);
-  UpdateWindowStatus();
+  updateWindowStatus();
  cancel:
   return (0);
 }
@@ -677,18 +711,18 @@ static int On9122Eject(HPSS80 *ctrl, BYTE byUnit) {
 //
 // ID_9121_LOAD
 //
-static int On9121Load(HP9121 *ctrl, BYTE byUnit) {	// load an image to a disc unit
+static int on9121Load(HP9121 *ctrl, BYTE byUnit) {	// load an image to a disc unit
 
   if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to load a Disk."));
+    emuInfoMessage("The emulator must be running to load a Disk.");
     goto cancel;
   }
   if (hp9121_widle(ctrl))	{			// wait for idle hp9121 state
-    emuInfoMessage(_T("The HP9121 is busy."));
+    emuInfoMessage("The HP9121 is busy.");
     goto cancel;
   } 
   hp9121_load(ctrl, byUnit, szBufferFilename);
-  UpdateWindowStatus();
+  updateWindowStatus();
  cancel:
   return 0;
 }
@@ -696,14 +730,14 @@ static int On9121Load(HP9121 *ctrl, BYTE byUnit) {	// load an image to a disc un
 //
 // ID_9121_SAVE
 //
-static int On9121Save(HP9121 *ctrl, BYTE byUnit) {
+static int on9121Save(HP9121 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to save a Disk."));
+    emuInfoMessage("The emulator must be running to save a Disk.");
     goto cancel;
   }
   if (hp9121_widle(ctrl))	{			// wait for idle hp9122 state
-    emuInfoMessage(_T("The HP9121 is busy."));
+    emuInfoMessage("The HP9121 is busy.");
     goto cancel;
   }
   _ASSERT(ctrl->name[byUnit][0] != 0x00);
@@ -715,18 +749,18 @@ static int On9121Save(HP9121 *ctrl, BYTE byUnit) {
 //
 // ID_9121_EJECT
 //
-static int On9121Eject(HP9121 *ctrl, BYTE byUnit) {
+static int on9121Eject(HP9121 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to eject a Disk."));
+    emuInfoMessage("The emulator must be running to eject a Disk.");
     goto cancel;
   }
   if (hp9121_widle(ctrl)) {    // wait for idle hp9121 state
-    emuInfoMessage(_T("The HP9121 is busy."));
+    emuInfoMessage("The HP9121 is busy.");
     goto cancel;
   }
   hp9121_eject(ctrl, byUnit);
-  UpdateWindowStatus();
+  updateWindowStatus();
  cancel:
   return (0);
 }
@@ -734,37 +768,18 @@ static int On9121Eject(HP9121 *ctrl, BYTE byUnit) {
 //
 // ID_7908_LOAD
 //
-static int On7908Load(HPSS80 *ctrl, BYTE byUnit) {
+static int on7908Load(HPSS80 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
     emuInfoMessage("The emulator must be running to load a Disk.");
     goto cancel;
   }
   if (hp7908_widle(ctrl))	{	       	// wait for idle hp7908 state
-    emuInfoMessage(_T("The HP7908 is busy."));
+    emuInfoMessage("The HP7908 is busy.");
     goto cancel;
   } 
   hp7908_load(ctrl, byUnit, szBufferFilename);
-  UpdateWindowStatus();
- cancel:
-  return 0;
-}
-
-//
-// ID_7908_SAVE
-//
-static int On7908Save(HPSS80 *ctrl, BYTE byUnit) {
-
-  if (nState != SM_RUN) {
-    emuInfoMessage(_T("The emulator must be running to save a Disk."));
-    goto cancel;
-  }
-  if (hp7908_widle(ctrl))	{			// wait for idle hp7908 state
-    emuInfoMessage(_T("The HP7908 is busy."));
-    goto cancel;
-  }
-  _ASSERT(ctrl->name[byUnit][0] != 0x00);
-  hp7908_save(ctrl, byUnit, szBufferFilename);
+  updateWindowStatus();
  cancel:
   return 0;
 }
@@ -772,7 +787,7 @@ static int On7908Save(HPSS80 *ctrl, BYTE byUnit) {
 //
 // ID_7908_EJECT
 //
-static int On7908Eject(HPSS80 *ctrl, BYTE byUnit) {
+static int on7908Eject(HPSS80 *ctrl, BYTE byUnit) {
 
   if (nState != SM_RUN) {
     emuInfoMessage("The emulator must be running to eject a Disk.");
@@ -783,21 +798,21 @@ static int On7908Eject(HPSS80 *ctrl, BYTE byUnit) {
     goto cancel;
   }
   hp7908_eject(ctrl, byUnit);
-  UpdateWindowStatus();
+  updateWindowStatus();
  cancel:
   return (0);
 }
 
 static void doLoadCB(EZ_Widget *w, void *d) {
   long munit = (long) d;
-  fprintf(stderr,"loadCB %ld\n",munit);
+  //fprintf(stderr,"loadCB %ld\n",munit);
   switch(munit) {
-  case 1: On9121Load(&Chipset.Hp9121, 0); break;
-  case 2: On9121Load(&Chipset.Hp9121, 1); break;
-  case 3: On9122Load(&Chipset.Hp9122, 0); break;
-  case 4: On9122Load(&Chipset.Hp9122, 1); break;
-  case 5: On7908Load(&Chipset.Hp7908_0, 0); break;
-  case 6: On7908Load(&Chipset.Hp7908_1, 0); break;
+  case 1: on9121Load(&Chipset.Hp9121, 0); break;
+  case 2: on9121Load(&Chipset.Hp9121, 1); break;
+  case 3: on9122Load(&Chipset.Hp9122, 0); break;
+  case 4: on9122Load(&Chipset.Hp9122, 1); break;
+  case 5: on7908Load(&Chipset.Hp7908_0, 0); break;
+  case 6: on7908Load(&Chipset.Hp7908_1, 0); break;
   default: fprintf(stderr,"Invalid unit\n");
   }
 }
@@ -813,35 +828,34 @@ static void loadCB(EZ_Widget *w, void *d) {
 
 static void saveCB(EZ_Widget *w, void *d) {
   long munit = (long) d;
-  fprintf(stderr,"saveCB %ld\n", munit);
+  //fprintf(stderr,"saveCB %ld\n", munit);
   switch(munit) {
-  case 1: On9121Save(&Chipset.Hp9121, 0); break;
-  case 2: On9121Save(&Chipset.Hp9121, 1); break;
-  case 3: On9122Save(&Chipset.Hp9122, 0); break;
-  case 4: On9122Save(&Chipset.Hp9122, 1); break;
-    //  case 5: On7908Save(&Chipset.Hp7908_0, 0); break;
-    //  case 6: On7908Save(&Chipset.Hp7908_1, 0); break;
+  case 1: on9121Save(&Chipset.Hp9121, 0); break;
+  case 2: on9121Save(&Chipset.Hp9121, 1); break;
+  case 3: on9122Save(&Chipset.Hp9122, 0); break;
+  case 4: on9122Save(&Chipset.Hp9122, 1); break;
+    //  case 5: on7908Save(&Chipset.Hp7908_0, 0); break;
+    //  case 6: on7908Save(&Chipset.Hp7908_1, 0); break;
   default: fprintf(stderr,"Invalid unit\n");
   }
 }
 
 static void ejectCB(EZ_Widget *w, void *d) {
   long munit = (long) d;
-  fprintf(stderr,"ejectCB %ld\n", munit);
+  //fprintf(stderr,"ejectCB %ld\n", munit);
    switch(munit) {
-  case 1: On9121Eject(&Chipset.Hp9121, 0); break;
-  case 2: On9121Eject(&Chipset.Hp9121, 1); break;
-  case 3: On9122Eject(&Chipset.Hp9122, 0); break;
-  case 4: On9122Eject(&Chipset.Hp9122, 1); break;
-  case 5: On7908Eject(&Chipset.Hp7908_0, 0); break;
-  case 6: On7908Eject(&Chipset.Hp7908_1, 0); break;
+  case 1: on9121Eject(&Chipset.Hp9121, 0); break;
+  case 2: on9121Eject(&Chipset.Hp9121, 1); break;
+  case 3: on9122Eject(&Chipset.Hp9122, 0); break;
+  case 4: on9122Eject(&Chipset.Hp9122, 1); break;
+  case 5: on7908Eject(&Chipset.Hp7908_0, 0); break;
+  case 6: on7908Eject(&Chipset.Hp7908_1, 0); break;
   default: fprintf(stderr,"Invalid unit\n");
   }
 }
 
-static UINT SaveChanges(BOOL bAuto) {
+static UINT saveChanges(BOOL bAuto) {
   char buf[1024];
-  if (pbyRom == NULL) return 0;
   if (!bAuto) return 1;
   if (!imageFile[0]) {
     strcpy(imageFile,"system.img");
@@ -849,8 +863,8 @@ static UINT SaveChanges(BOOL bAuto) {
     emuInfoMessage(buf);
   }
   fprintf(stderr, "Saving system image in: %s\n",imageFile);
-  if (SaveSystemImageAs(imageFile)) {
-    SetWindowTitle(imageFile);
+  if (saveSystemImageAs(imageFile)) {
+    setWindowTitle(imageFile);
     return 1;
   } else {
     emuInfoMessage("Failed to save image");
@@ -862,7 +876,7 @@ static UINT SaveChanges(BOOL bAuto) {
 static void loadSICB(EZ_Widget *w, void *d) {
   EZ_HideWidget(siMenu);
   EZ_ConfigureWidget(fileSelector,
-		     EZ_CALLBACK, setBufferFilename, (void *)OnFileOpen,
+		     EZ_CALLBACK, setBufferFilename, (void *)onFileOpen,
 		     EZ_CLIENT_INT_DATA, (long)d,
 		     NULL);
   EZ_SetFileSelectorInitialPattern(fileSelector, "*.img");
@@ -871,18 +885,16 @@ static void loadSICB(EZ_Widget *w, void *d) {
 
 static void saveSICB(EZ_Widget *w, void *data) {
   int mstate=nState;
-  if (pbyRom == NULL) return;
-  SwitchToState(SM_INVALID);
-  SaveChanges(TRUE);
-  SwitchToState(mstate);
+  switchToState(SM_INVALID);
+  saveChanges(TRUE);
+  switchToState(mstate);
   return;
 }
 
 static void saveAsSICB(EZ_Widget *w, void *data) {
   //  EZ_HideWidget(siMenu);
-  if (pbyRom == NULL) return;
   EZ_ConfigureWidget(fileSelector,
-		     EZ_CALLBACK, setBufferFilename, (void *)OnFileSaveAs,
+		     EZ_CALLBACK, setBufferFilename, (void *)onFileSaveAs,
 		     EZ_CLIENT_INT_DATA, (long)data,
 		     NULL);
   EZ_SetFileSelectorInitialPattern(fileSelector, "*.img");
@@ -890,74 +902,67 @@ static void saveAsSICB(EZ_Widget *w, void *data) {
   return;
 }
 
-static int OnFileNew(VOID) {
+static int onFileNew(VOID) {
   int mstate=nState;
-  if (pbyRom) {
-    SwitchToState(SM_INVALID);
-    if (0 == SaveChanges(bAutoSave))
-      goto cancel;
-  }
-  if (NewSystemImage()) SetWindowTitle("New System Image");
-  UpdateWindowStatus();
+
+  switchToState(SM_INVALID);
+  if (!saveChanges(bAutoSave))  goto cancel;
+  if (newSystemImage()) setWindowTitle("New System Image");
+  updateWindowStatus();
  cancel:
   imageFile[0] = 0;
-  if (pbyRom) SwitchToState(mstate);
+  switchToState(mstate);
   EZ_HideWidget(siMenu);
   siMenuPosted = 0;
   return 0;
 }
 
-static int OnFileOpen(VOID) { 
+static int onFileOpen(VOID) { 
   int mstate=nState;
   strcpy(imageFile,szBufferFilename);
-  fprintf(stderr,"OnFileOpen: image %s; state %d\n",imageFile,mstate);
-  if (pbyRom) {
-    SwitchToState(SM_INVALID);
-     if (0 == SaveChanges(bAutoSave))
-       goto cancel; 
-  } 
+  fprintf(stderr,"onFileOpen: image %s; state %d\n",imageFile,mstate);
+  switchToState(SM_INVALID);
+  if (!saveChanges(bAutoSave)) goto cancel; 
   if (szBufferFilename[0] != 0) {
-    if (!OpenSystemImage(szBufferFilename)) emuInfoMessage("Load of system image failed");
+    if (!openSystemImage(szBufferFilename)) emuInfoMessage("Load of system image failed");
     else {
       strcpy(imageFile,szBufferFilename);
-      SetWindowTitle(imageFile);
+      setWindowTitle(imageFile);
     }
   }
  cancel:
-  if (pbyRom) SwitchToState(mstate);
+  switchToState(mstate);
   return 0;
 }
 
-static int OnFileSaveAs(VOID) {
+static int onFileSaveAs(VOID) {
   int mstate=nState;
-  if (pbyRom == NULL) goto cancel;
-  
-  SwitchToState(SM_INVALID);
+
+  switchToState(SM_INVALID);
 
   if (szBufferFilename[0] != 0) {
     strcpy(imageFile,szBufferFilename);
-    fprintf(stderr,"OnFileSaveAs: image %s; state %d\n",imageFile,mstate);
-    SaveSystemImageAs(szBufferFilename);
+    fprintf(stderr,"onFileSaveAs: image %s; state %d\n",imageFile,mstate);
+    saveSystemImageAs(szBufferFilename);
   }
-  SwitchToState(mstate);
- cancel:
+  switchToState(mstate);
+
   EZ_HideWidget(siMenu);
   siMenuPosted =0;
   return 0;
 }
 
-static int OnFileClose(VOID) {
+static int onFileClose(VOID) {
   int mstate=nState;
-  if (pbyRom == NULL) goto cancel;
-  SwitchToState(SM_INVALID);
-  if (SaveChanges(bAutoSave)!= 0) {
-    SetWindowTitle("Untitled");
+
+  switchToState(SM_INVALID);
+  if (saveChanges(bAutoSave)!= 0) {
+    setWindowTitle("Untitled");
     imageFile[0] = 0;         // No file associated with image anymore
   }
   
-  SwitchToState(mstate);
+  switchToState(mstate);
 
- cancel:
   EZ_HideWidget(siMenu);
   siMenuPosted =0;
   return 0;
@@ -965,16 +970,15 @@ static int OnFileClose(VOID) {
 
 static void resetCB(EZ_Widget *widget, void *data) {
   if (nState == SM_RUN) {
-    SwitchToState(SM_INVALID);
-    SystemReset();	
-    SwitchToState(SM_RUN);
+    switchToState(SM_INVALID);
+    systemReset();	
+    switchToState(SM_RUN);
   }
 }
 
 static EZ_Widget *menus[7][6]; // indexed by nId => File, *H700, *H701, *H720, *H721, *H730, *H740
 
 static void setupMenus() {
-  EZ_Widget *menu, *tmp;
   int i;
 
   menus[0][0] = EZ_CreateWidget(EZ_WIDGET_MENU,      NULL,
@@ -986,7 +990,7 @@ static void setupMenus() {
   menus[0][1] = EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[0][0],
 				EZ_LABEL_STRING,               "New",
 				EZ_UNDERLINE,                  0,
-				EZ_CALLBACK,                   OnFileNew, 0,
+				EZ_CALLBACK,                   onFileNew, 0,
 				NULL);
     
   menus[0][2] =  EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[0][0],
@@ -1010,7 +1014,7 @@ static void setupMenus() {
   menus[0][5] = EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[0][0],
 				EZ_LABEL_STRING,               "Close",
 				EZ_UNDERLINE,                  0,
-				EZ_CALLBACK,                   OnFileClose,
+				EZ_CALLBACK,                   onFileClose,
 				NULL);
 
   // Led button menus
@@ -1039,19 +1043,18 @@ static void setupMenus() {
 				  EZ_CALLBACK,                   ejectCB, i,
 				  NULL);
 
-    tmp  = EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[i][0],
-			   EZ_LABEL_STRING,               "Cancel",
-			   EZ_UNDERLINE,                  0,
-			   EZ_CALLBACK,                   cancelCB, i,
-			   NULL);
+    EZ_CreateWidget(EZ_WIDGET_MENU_NORMAL_BUTTON,  menus[i][0],
+		    EZ_LABEL_STRING,               "Cancel",
+		    EZ_UNDERLINE,                  0,
+		    EZ_CALLBACK,                   cancelCB, i,
+		    NULL);
   }
 }
 
 static void setupMenuBar(EZ_Widget *mbar) {
-  EZ_Widget *menu, *tmp, *frame;
+  EZ_Widget *frame;
 
   /* font menu */
-
  
    seButton  = EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON,  mbar,
 			       EZ_WIDTH,        80,
@@ -1103,37 +1106,22 @@ static void setupMenuBar(EZ_Widget *mbar) {
 
 
   mhzLed = EZ_CreateWidget(EZ_WIDGET_LED, mbar,
-			   EZ_LED_WIDTH,          200,
+			   EZ_LED_WIDTH,          232,
 			   EZ_LED_HEIGHT,         8,
-			   EZ_BORDER_WIDTH,       2,
-			   EZ_BORDER_TYPE,        EZ_BORDER_EMBOSSED,
+			   EZ_BORDER_WIDTH,       4,
+			   EZ_BORDER_TYPE,        EZ_BORDER_GROOVE,
 			   EZ_LED_PIXEL_SIZE,     1,1,
 			   EZ_LABEL_POSITION,     EZ_LEFT,
 			   EZ_LABEL_STRING,       " Starting...",
 			   EZ_LED_PIXEL_COLOR,    "black",
 			   EZ_GRID_CELL_GEOMETRY,  4, 0, 1, 1, 
-			   EZ_GRID_CELL_PLACEMENT, EZ_FILL_BOTH, EZ_CENTER,
+			   EZ_GRID_CELL_PLACEMENT, EZ_FILL_VERTICALLY, EZ_CENTER,
 			   0);
   
-  frame  = EZ_CreateWidget(EZ_WIDGET_FRAME, mbar,
-			   EZ_HEIGHT,             48,
-			   EZ_WIDTH,              48,
-			   EZ_BORDER_WIDTH,       1,
-			   EZ_BORDER_TYPE,        EZ_BORDER_EMBOSSED,
-			   EZ_FILL_MODE, EZ_FILL_BOTH,
-			   EZ_ORIENTATION, EZ_VERTICAL,
-			   EZ_SIDE, EZ_CENTER,
+  frame  = EZ_CreateWidget(EZ_WIDGET_FRAME,        mbar,
+			   EZ_LABEL_STRING,        "FPU",
 			   EZ_GRID_CELL_GEOMETRY,  5, 0, 1, 1, 
-			   EZ_GRID_CELL_PLACEMENT, EZ_FILL_BOTH, EZ_CENTER,
 			   0);
-
-   tmp   =   EZ_CreateWidget(EZ_WIDGET_LABEL,    frame,
-			     EZ_PADY,            0,
-			     EZ_BORDERWIDTH,     0,
-			     EZ_LABEL_STRING,    "FPU",
-			     EZ_TEXT_LINE_LENGTH, 3,
-			     EZ_JUSTIFICATION,    EZ_LEFT,
-			     NULL);  
 
   fpuLed = EZ_CreateWidget(EZ_WIDGET_LED,         frame,
 			   EZ_HEIGHT,             16,
@@ -1149,17 +1137,16 @@ static void setupMenuBar(EZ_Widget *mbar) {
 			   NULL);
   
 
-  tmp    = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  mbar,
-			   EZ_LABEL_STRING,         "Quit",
-			   EZ_WIDTH,                64,
-			   EZ_BORDER_WIDTH,         4,
-			   EZ_BORDER_TYPE,          EZ_BORDER_SHADOW3,
-			   EZ_INDICATOR_TYPE,       EZ_EMPTY_INDICATOR,
-			   EZ_GRID_CELL_GEOMETRY,   6, 0, 1, 1,
-			   EZ_GRID_CELL_PLACEMENT,  EZ_FILL_BOTH, EZ_CENTER,
-			   EZ_CALLBACK,             quitCB, NULL,
-			   NULL);
-    
+  EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  mbar,
+		  EZ_LABEL_STRING,         "Quit",
+		  EZ_WIDTH,                64,
+		  EZ_BORDER_WIDTH,         4,
+		  EZ_BORDER_TYPE,          EZ_BORDER_SHADOW3,
+		  EZ_INDICATOR_TYPE,       EZ_EMPTY_INDICATOR,
+		  EZ_GRID_CELL_GEOMETRY,   6, 0, 1, 1,
+		  EZ_GRID_CELL_PLACEMENT,  EZ_FILL_BOTH, EZ_CENTER,
+		  EZ_CALLBACK,             quitCB, NULL,
+		  NULL);
 }
 
 static int ledId = 1;
@@ -1259,9 +1246,6 @@ static void setupRightHandPanel(EZ_Widget *frame) {
 			     EZ_LABEL_STRING,       "HPIB",
 			     0);
 
-
-
-  
   emuCreateDisk(hpibframe,"hp9121D","Addr:700", 2, 0);
   emuCreateDisk(hpibframe,"hp9122D","Addr:702", 2, 1);
   emuCreateDisk(hpibframe,"hp7908" ,"Addr:703", 1, 2);
@@ -1291,26 +1275,26 @@ static void setupRightHandPanel(EZ_Widget *frame) {
   
 }
 
-void SetWindowTitle(char *Title) {
+void setWindowTitle(char *Title) {
   EZ_ConfigureWidget(toplevel, EZ_WM_WINDOW_NAME, Title, 0);
 }
 
-static void EnableMenuItem(int menuId, int state) {
-  // fprintf(stderr,"EnableMenuItem: %d:%d state: %d\n",menuId/10, menuId%10,state);
+static void enableMenuItem(int menuId, int state) {
+  // fprintf(stderr,"enableMenuItem: %d:%d state: %d\n",menuId/10, menuId%10,state);
   if (state) EZ_EnableWidget(menus[menuId/10][menuId%10]);
   else       EZ_DisableWidget(menus[menuId/10][menuId%10]);
 }
 
-VOID UpdateWindowStatus(VOID)  {
+VOID updateWindowStatus(VOID)  {
   if (hWnd) {					// window open
     BOOL bRun         = nState == SM_RUN;
     UINT uRun         = bRun ? 1 : 0;
 
-    EnableMenuItem(ID_FILE_NEW, 1);
-    EnableMenuItem(ID_FILE_OPEN, 1);
-    EnableMenuItem(ID_FILE_SAVE, (bRun && imageFile[0]));
-    EnableMenuItem(ID_FILE_SAVEAS, uRun);
-    EnableMenuItem(ID_FILE_CLOSE, (bRun && imageFile[0]));
+    enableMenuItem(ID_FILE_NEW, 1);
+    enableMenuItem(ID_FILE_OPEN, 1);
+    enableMenuItem(ID_FILE_SAVE, (bRun && imageFile[0]));
+    enableMenuItem(ID_FILE_SAVEAS, uRun);
+    enableMenuItem(ID_FILE_CLOSE, (bRun && imageFile[0]));
     EZ_SetCheckButtonState(runBtn,uRun);
 
     for (int i=0; i<volId; i++)
@@ -1318,56 +1302,56 @@ VOID UpdateWindowStatus(VOID)  {
       else      EZ_DisableWidget(volumeLabels[i]);
 
     // HPIB 700 drives
-    if (Chipset.Hpib70x != 1) {
-      EnableMenuItem(ID_D700_LOAD,  0);
-      EnableMenuItem(ID_D700_SAVE,  0);
-      EnableMenuItem(ID_D700_EJECT, 0);
-      EnableMenuItem(ID_D701_LOAD,  0);
-      EnableMenuItem(ID_D701_SAVE,  0);
-      EnableMenuItem(ID_D701_EJECT, 0);
+    if (Chipset.Hpib700 != 1) {
+      enableMenuItem(ID_D700_LOAD,  0);
+      enableMenuItem(ID_D700_SAVE,  0);
+      enableMenuItem(ID_D700_EJECT, 0);
+      enableMenuItem(ID_D701_LOAD,  0);
+      enableMenuItem(ID_D701_SAVE,  0);
+      enableMenuItem(ID_D701_EJECT, 0);
     } else {
-      EnableMenuItem(ID_D700_LOAD,  (Chipset.Hp9121.disk[0] == NULL));
-      EnableMenuItem(ID_D700_SAVE,  (Chipset.Hp9121.disk[0] != NULL));
-      EnableMenuItem(ID_D700_EJECT, (Chipset.Hp9121.disk[0] != NULL));
-      EnableMenuItem(ID_D701_LOAD,  (Chipset.Hp9121.disk[1] == NULL));
-      EnableMenuItem(ID_D701_SAVE,  (Chipset.Hp9121.disk[1] != NULL));
-      EnableMenuItem(ID_D701_EJECT, (Chipset.Hp9121.disk[1] != NULL));
+      enableMenuItem(ID_D700_LOAD,  (Chipset.Hp9121.disk[0] == NULL));
+      enableMenuItem(ID_D700_SAVE,  (Chipset.Hp9121.disk[0] != NULL));
+      enableMenuItem(ID_D700_EJECT, (Chipset.Hp9121.disk[0] != NULL));
+      enableMenuItem(ID_D701_LOAD,  (Chipset.Hp9121.disk[1] == NULL));
+      enableMenuItem(ID_D701_SAVE,  (Chipset.Hp9121.disk[1] != NULL));
+      enableMenuItem(ID_D701_EJECT, (Chipset.Hp9121.disk[1] != NULL));
     }
     
     // HPIB 701 is printer
     
     // HPIB 702 drives
-    if (Chipset.Hpib72x != 3) {
-      EnableMenuItem(ID_D720_LOAD,  0);
-      EnableMenuItem(ID_D720_SAVE,  0);
-      EnableMenuItem(ID_D720_EJECT, 0);
-      EnableMenuItem(ID_D721_LOAD,  0);
-      EnableMenuItem(ID_D721_SAVE,  0);
-      EnableMenuItem(ID_D721_EJECT, 0);
+    if (Chipset.Hpib702 != 3) {
+      enableMenuItem(ID_D720_LOAD,  0);
+      enableMenuItem(ID_D720_SAVE,  0);
+      enableMenuItem(ID_D720_EJECT, 0);
+      enableMenuItem(ID_D721_LOAD,  0);
+      enableMenuItem(ID_D721_SAVE,  0);
+      enableMenuItem(ID_D721_EJECT, 0);
     } else {
-      EnableMenuItem(ID_D720_LOAD,  (Chipset.Hp9122.disk[0] == NULL));
-      EnableMenuItem(ID_D720_SAVE,  (Chipset.Hp9122.disk[0] != NULL));
-      EnableMenuItem(ID_D720_EJECT, (Chipset.Hp9122.disk[0] != NULL));
-      EnableMenuItem(ID_D721_LOAD,  (Chipset.Hp9122.disk[1] == NULL));
-      EnableMenuItem(ID_D721_SAVE,  (Chipset.Hp9122.disk[1] != NULL));
-      EnableMenuItem(ID_D721_EJECT, (Chipset.Hp9122.disk[1] != NULL));
+      enableMenuItem(ID_D720_LOAD,  (Chipset.Hp9122.disk[0] == NULL));
+      enableMenuItem(ID_D720_SAVE,  (Chipset.Hp9122.disk[0] != NULL));
+      enableMenuItem(ID_D720_EJECT, (Chipset.Hp9122.disk[0] != NULL));
+      enableMenuItem(ID_D721_LOAD,  (Chipset.Hp9122.disk[1] == NULL));
+      enableMenuItem(ID_D721_SAVE,  (Chipset.Hp9122.disk[1] != NULL));
+      enableMenuItem(ID_D721_EJECT, (Chipset.Hp9122.disk[1] != NULL));
     }
 
     // HPIB 703 drive
-    if (Chipset.Hpib73x != 1) {
-      EnableMenuItem(ID_H730_LOAD,  0);
-      EnableMenuItem(ID_H730_EJECT, 0);
+    if (Chipset.Hpib703 != 1) {
+      enableMenuItem(ID_H730_LOAD,  0);
+      enableMenuItem(ID_H730_EJECT, 0);
     } else {
-      EnableMenuItem(ID_H730_LOAD,  (Chipset.Hp7908_0.disk[0] == NULL));
-      EnableMenuItem(ID_H730_EJECT, (Chipset.Hp7908_0.disk[0] != NULL));
+      enableMenuItem(ID_H730_LOAD,  (Chipset.Hp7908_0.disk[0] == NULL));
+      enableMenuItem(ID_H730_EJECT, (Chipset.Hp7908_0.disk[0] != NULL));
     }
     // HPIB 704 drive
-    if (Chipset.Hpib74x != 1) {
-      EnableMenuItem(ID_H740_LOAD,  0);
-      EnableMenuItem(ID_H740_EJECT, 0);
+    if (Chipset.Hpib704 != 1) {
+      enableMenuItem(ID_H740_LOAD,  0);
+      enableMenuItem(ID_H740_EJECT, 0);
     } else {
-      EnableMenuItem(ID_H740_LOAD,  (Chipset.Hp7908_1.disk[0] == NULL));
-      EnableMenuItem(ID_H740_EJECT, (Chipset.Hp7908_1.disk[0] != NULL));
+      enableMenuItem(ID_H740_LOAD,  (Chipset.Hp7908_1.disk[0] == NULL));
+      enableMenuItem(ID_H740_EJECT, (Chipset.Hp7908_1.disk[0] != NULL));
     }
   }
 }
@@ -1375,7 +1359,7 @@ VOID UpdateWindowStatus(VOID)  {
 //
 // Mouse wheel handler
 //
-static int OnMouseWheel(UINT clicks, WORD x, WORD y) {
+static int onMouseWheel(UINT clicks, WORD x, WORD y) {
 #ifdef DEBUG_KEYBOARDW
   k = wsprintf(buffer,_T("      : Wheel : wP %08X lP %04X%04X\n"), nFlags, x, y);
   OutputDebugString(buffer); buffer[0] = 0x00;
@@ -1386,7 +1370,7 @@ static int OnMouseWheel(UINT clicks, WORD x, WORD y) {
 
 
 // for key up/down 
-static int OnKey(int down, unsigned int keycode, int state) {
+static int onKey(int down, unsigned int keycode, int state) {
   int kc = keycode & 0x7F;
 
   // fprintf(stderr,"in    : kc %02x %d %02x %d\n", kc, down, state&0xf, Chipset.Keyboard.shift);
@@ -1422,17 +1406,14 @@ static int OnKey(int down, unsigned int keycode, int state) {
 //
 // annunciator button handler
 //
- VOID ButtonEvent(BOOL state, UINT nId, int x, int y) {
+ VOID buttonEvent(BOOL state, UINT nId, int x, int y) {
    //  fprintf(stderr,"Button event: state %d, Id %d\n",state,nId);
   if (state == TRUE) return;
   if (nId >= 2 && nId <=7)  EZ_DoPopup(menus[nId-1][0], EZ_BOTTOM_RIGHT);
 }
 
 int main(int ac, char **av) {
-  Pixmap     pixmap,shape;
   EZ_Widget *frame, *mbar;
-  int        w,h;
-  char      *value;
 
   XInitThreads();
 
@@ -1492,8 +1473,8 @@ int main(int ac, char **av) {
   dpy    = EZ_GetDisplay();            /* display   */
 
   
-  /* Timer for Mhz and mem display update */
-  EZ_Timer *mTimer = EZ_CreateTimer(1,0,-1,timerCB,toplevel,0);
+  /* EZ_Timer *mTimer = Timer for Mhz and mem display update */
+  EZ_CreateTimer(1,0,-1,timerCB,toplevel,0);
 
   EZ_DisplayWidget(frame);
 
@@ -1512,27 +1493,29 @@ int main(int ac, char **av) {
   EZ_AddEventHandler(workArea, passThruEventHandler, NULL, 0);
   nState     = SM_RUN;			// init state must be <> nNextState
   nNextState = SM_INVALID;		// go into invalid state
-  pthread_create(&cpuThread,NULL,&CpuEmulator,NULL);
+  pthread_create(&cpuThread,NULL,&cpuEmulator,NULL);
 
   
   while (nState!=nNextState) usleep(10000);  // wait for thread initialized
 
   if (ac == 2)	{			// use decoded parameter line
-    if (OpenSystemImage(av[1])) {
-      SetWindowTitle(av[1]);
+    if (openSystemImage(av[1])) {
+      setWindowTitle(av[1]);
       strcpy(imageFile,av[1]);
       hp9816emuDraw(workArea);
-      SwitchToState(SM_RUN); 
+      switchToState(SM_RUN); 
       goto start;
     }
   }
 
-  if (NewSystemImage()) {
-    SetWindowTitle("New system image");
-    goto start;
+  //  goto start;
+
+  if (!newSystemImage()) { 
+    fprintf(stderr,"Failed to create new system image\n");
+    exit(1);
   }
 
-  exit(1);
+  setWindowTitle("New system image"); 
 
  start:
   EZ_SetFocusTo(workArea);// Send keyboard events to emulator

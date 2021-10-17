@@ -2,8 +2,8 @@
 
 This is an emulator for the HP9816 desktop workstation that was based on an 8MHz Motorola 68000 processor.
 
-The code was adapted from Olivier de Smet's 98x6 emulator for windows
- [Website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6)
+The code was adapted from Olivier de Smet's 98x6 emulator for windows. See his 
+ [Website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6).
 
 License: GPL V3
 
@@ -45,15 +45,15 @@ and load the dmpas.hpi disk image)
 
 The following HPIB peripherals are preconfigured on select code 7 and cannot be changed:
 
-- Bus address 0: hp9121 amigo floppy disk drive units 0 and 1
+- 700: hp9121 amigo floppy disk drive units 0 and 1
   -  This is mainly for the HPL2 operating system.
   -  HPL2 boots from it but then hangs. (Workaround: boot HPL from ss/80 drive)
   -  Basic and Pascal OK.
-- Bus address 1: printer - prints to file on host local file system:
+- 701: printer - prints to file on host local file system:
                printer-xxx.txt
-- Bus address 2: hp9122 ss/80 floppy disk drive units 0 and 1
-- Bus address 3: hp7908 cs/80 hard drive unit 0
-- Bus address 4: hp7908 cs/80 hard drive unit 0
+- 702: hp9122 ss/80 floppy disk drive units 0 and 1
+- 703: hp7908 cs/80 hard drive unit 0
+- 704: hp7908 cs/80 hard drive unit 0
 
 When a **Unit N** label is clicked a menu to manage the corresponding disk image is posted.
 
@@ -110,7 +110,8 @@ take effect when initialising a **New** system image. Pascal programs
 compiled with the `$FLOAT_HDW ON$` directive require the floating
 point unit to be enabled.
 
-There are 3 general settings: "Set system time", "Auto save system image" and "Auto save on exit".
+There are 4 general settings: "Set system time", "Auto save system image", "Auto save on exit"
+and "Phosphor".
 The general settings take effect immediately.
 
 Set system time when enabled will automatically set the system time for Pascal and Basic OS's
@@ -125,18 +126,18 @@ image file has been loaded the image file "system.img" is used.
 Make sure you do not have anything you want to keep in "system.img"
 when using the "Auto save" features.
 
-To hide the Settings menu just click ok OK.
+The Phosphor setting changes the colour of the screen.
+
+To hide the Settings menu just click on the **OK** button.
 
 ### Speed
 
-The **Speed** button allows you to set the speed of the emulated MC68000
-clock.  Choices are 8, 16, 24, 32 MHz and Max. For games it should be
-set to the standard 8MHz frequency.  Depending on the speed of your
-processor you might see some "NT workaround" messages on the stderr.
-This is indicates that the processor is too slow to effectively run at
-the required frequency.  The message is normal when interacting with
-the UI elements since the X-Window system locks out the CPU emulation
-thread during those times.
+The **Speed** button allows you to set the speed of the emulated
+MC68000 clock.  Choices are 8, 16, 24, 32 MHz and Max. For games it
+should be set to the standard 8MHz frequency. The effective CPU
+frequency attained might slow down when interacting with the UI
+elements since the X-Window system locks out the CPU emulation thread
+during those times.
 
 The speed setting takes effect immediately.
 
@@ -177,7 +178,7 @@ The right hand panel provides a number of buttons and indicators.
 
 ## Buttons
 
-Each **Unit N** button posts a menu to manage the association of a disk image (.hpi file) with the corresponding drive. Entries will be greyed out if they are not applicable. These buttons can only be used when the emulator is running as they are handled by the cpu thread.
+Each **Unit N** button posts a menu to manage the association of a disk image (.hpi file) with the corresponding drive. Entries will be greyed out if they are not applicable. These buttons can only be used when the emulator is running as they are handled by the cpu thread. The button label colour is black when no disk is associated with the unit otherwise it is red. When the volume label on the disk is read by the operating system the button label changes to the LIF Volume name.
 
 * **Load** Posts a file selection widget to choose the file to associate with the drive
 * **Save** Save the disk image back to the file from whence it came (floppies only)

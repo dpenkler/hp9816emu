@@ -11,7 +11,6 @@
 
 #include "common.h"
 #include "hp9816emu.h"
-// #include "kml.h"
 #include "mops.h"
 
 
@@ -25,7 +24,7 @@
 //
 // reset whole system
 //
-VOID SystemReset(VOID) {		// register settings after System Reset
+VOID systemReset(VOID) {		// register settings after System Reset
 
   Chipset.Cpu.A[0].l = 0x00000000;
   Chipset.Cpu.A[1].l = 0x00000000;
@@ -57,22 +56,24 @@ VOID SystemReset(VOID) {		// register settings after System Reset
 
   bzero(Chipset.Ram, Chipset.RamSize);
 	
-  Chipset.Keyboard.ram[0x12] = 0x00;		// us keyboard
+  Chipset.Keyboard.ram[0x12] = 0x00;	// us keyboard
   Chipset.annun &= 0x003FFFF;
 
   // load initial pc and ssp
   ReadMEM((BYTE *)& Chipset.Cpu.PC, 0x000004, 4);
   ReadMEM((BYTE *)& Chipset.Cpu.A[8], 0x000000, 4);
 
-  hpib_stop_bus();				// stop hpib bus activity
-  hpib_init_bus();				// initialize hpib bus
-  Reset_Keyboard();				// reset the keyboard 8041 
+  reloadGraph();
+  updateAlpha(TRUE);			// refresh whole screen
+
+  hpib_stop_bus();			// stop hpib bus activity
+  hpib_init_bus();			// initialize hpib bus
+  Reset_Keyboard();			// reset the keyboard 8041 
 
   // end of test
 
-  UpdateMainDisplay(TRUE);			// refresh whole screen
-  hpib_names();					// display lif names
-  UpdateLeds(TRUE);			        // update all annutiators
+  hpib_names();				// display lif names
+  updateLeds(TRUE);			// update all LEDS
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,13 +165,13 @@ BYTE ReadMEM(BYTE *a, DWORD d, BYTE s) {
       return Read_HPIB(a, dw, s);
       break;
     case 0x51:						// Display alpha		SC 1
-      return Read_Display16(a, dw, s);
+      return readDisplay(a, dw, s);
       break;
     case 0x52:						// Display graph 36c
       return BUS_ERROR;
       break;
     case 0x53:						// Display graph 16		
-      return Read_Graph16(a, dw, s);
+      return readGraph(a, dw, s);
       break;
     case 0x54:						// Display graph 36c
     case 0x55:
@@ -260,13 +261,13 @@ BYTE WriteMEM(BYTE *a, DWORD d, BYTE s) {
       return Write_HPIB(a, dw, s);
       break;
     case 0x51:						// Display			SC 1
-      return Write_Display16(a, dw, s);
+      return writeDisplay(a, dw, s);
       break;
     case 0x52:						// Display graph 36c
       return BUS_ERROR;
       break;
     case 0x53:						// Display graph 16		
-      return Write_Graph16(a, dw, s);
+      return writeGraph(a, dw, s);
       break;
     case 0x54:						// Display graph 36c
     case 0x55:

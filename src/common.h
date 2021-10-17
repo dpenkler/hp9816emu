@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <malloc.h>
@@ -34,18 +33,11 @@ typedef int             INT;
 typedef long            LONG;
 typedef unsigned long   ULONG;
 typedef int             LRESULT;
-typedef struct {
-  int left;
-  int top;
-  int right;
-  int bottom;
-} RECT;
 
 #define MAX_PATH 256
 #define FALSE 0
 #define TRUE 1
 #define _ASSERT(X) assert((X))
-#define _T(X) X
 #define __forceinline inline
 #define min(X,Y) ((X)<=(Y)?(X):(Y))
 #define wsprintf sprintf

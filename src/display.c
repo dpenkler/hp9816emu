@@ -13,7 +13,9 @@
 #include "common.h"
 #include "hp9816emu.h"
 #include "mops.h"
-#define DEBUG_DISPLAY
+#include "fontbm.h"
+
+//#define DEBUG_DISPLAY
 
 #if defined DEBUG_DISPLAY
 static TCHAR buffer[256];
@@ -22,28 +24,28 @@ static int k;
 #endif
 
 #define ALPHASIZE 4096
-#define CD Chipset.Display16
-#define NUM_CHARS 256
-#define CHAR_W 10
-#define CHAR_H 24
+#define CD Chipset.Display
 #define NUM_EFFECTS 4
+
 
 Pixmap	hFontBM;
 Pixmap	hAlpha1BM;
 Pixmap	hAlpha2BM;
 XImage *hGraphImg;
 Pixmap	hScreenBM;
+static  int mPhos=-1;
+static  unsigned int *fontBitMap = NULL;
 
-unsigned long bg[3][NUM_EFFECTS] = {
-  {0x000000L, 0xffffffL, 0x000000L, 0x777777L}, // white
-  {00000000L, 0x00ff00L, 0x000000L, 0x007700L}, // green
-  {0x000000L, 0xffaa00L, 0x000000L, 0x775500L}  // amber
+unsigned int bg[3][NUM_EFFECTS] = {
+  {0x000000, 0xffffff, 0x000000, 0x777777}, // white
+  {00000000, 0x00ff00, 0x000000, 0x007700}, // green
+  {0x000000, 0xffaa00, 0x000000, 0x775500}  // amber
 };			  
 
-unsigned long fg[3][NUM_EFFECTS] = {
-  {0xffffffL, 0x000000L, 0x777777L, 0x000000L}, // white
-  {0x00ff00L, 0x000000L, 0x007700L, 0x000000L}, // green
-  {0xffaa00L, 0x000000L, 0x775500L, 0x000000L}  // amber
+unsigned int fg[3][NUM_EFFECTS] = {
+  {0xffffff, 0x000000, 0x777777, 0x000000}, // white
+  {0x00ff00, 0x000000, 0x007700, 0x000000}, // green
+  {0xffaa00, 0x000000, 0x775500, 0x000000}  // amber
 };			  
 
 UINT	bgX = 0;	// offset of background X
@@ -52,10 +54,6 @@ UINT	bgW = 800;	// width of background
 UINT	bgH = 600;	// height of background
 UINT	scrX = 0;	// offset of screen X
 UINT	scrY = 0;	// offset of screen Y
-
-// from fontBM.c
-extern int fontHeight;
-extern int fontWidth;
 
 void ForceFullCopy() {
   CD.a_xmin = 0;
@@ -72,12 +70,14 @@ void ForceFullCopy() {
 void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
 
   int i,j,k;
-  unsigned int *fontBitMap;
   unsigned short mask;
+  XImage *xfontBM;
   /* Number  of pixels in font Pixmap NUM_EFFECTS*2 for underline also */
-  unsigned int numPixels = NUM_CHARS*CHAR_W*CHAR_H*NUM_EFFECTS*2;
+  unsigned int fontWidth  = NUM_CHARS*CHAR_W;
+  unsigned int fontHeight = CHAR_H;
+  unsigned int numPixels  = fontWidth*fontHeight*NUM_EFFECTS*2;
 
-  if (hFontBM) emuFreeBitMap(hFontBM); /* also flings fontBitMap */
+  if (hFontBM) emuFreeBitMap(hFontBM);
   
   fontBitMap = malloc(sizeof(unsigned int)*numPixels);
 
@@ -86,7 +86,7 @@ void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
     exit(1);
   }
   
-  for (int m=2560*22/16,i=0;i<2560/8;i++) fontBM[m++]=0; // remove underline
+  for (int m=fontWidth*22/16,i=0;i<fontWidth/8;i++) fontBM[m++]=0; // remove underline
 
   k =0;
   for (i=0;i<4;i++) { // normal, inverse, half, half inverse
@@ -99,7 +99,7 @@ void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
     }
   }
 
-  for (int m=2560*22/16,i=0;i<2560/8;i++) fontBM[m++]=0xffff; // add underline
+  for (int m=fontWidth*22/16,i=0;i<fontWidth/8;i++) fontBM[m++]=0xffff; // add underline
 
   /* do it again for underline */
   for (i=0;i<4;i++) { // normal, inverse, half, half inverse
@@ -112,23 +112,64 @@ void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
     }
   }
 
-  fprintf(stderr,"numPixels %d check %d\n",numPixels,k);
+  xfontBM = emuCreateImageFromBM(fontWidth, fontHeight*8, (char *)fontBitMap);
+
+  // again:
   
-  hFontBM = emuCreateBitMapFromData(NUM_CHARS*CHAR_W, CHAR_H*NUM_EFFECTS*2, fontBitMap);
+  hFontBM = emuCreateBitMapFromImage(fontWidth, fontHeight*8, xfontBM);
 
-  /* Set colour for graphics in display GC */
-  emuSetColours(fg[col][0], bg[col][0]);
+  
+  emuPutImage(hFontBM, 0, 0, fontWidth, fontHeight*8, xfontBM, GXcopy);
 
-  //XImage *xfontBM = emuCreateBMImage(fontWidth, fontHeight, fontBM);
+  emuFreeImage(xfontBM);
+  
+#if defined DEBUG_DISPLAY
+
+  unsigned int *ip, *op; /* debug */
+  XImage *tbm = emuGetImage(hFontBM, fontWidth, fontHeight*8);
+
+  ip = (unsigned int *) tbm->data;
+  op = fontBitMap;
+
+  int ecount =0;
+  for (i=0;i<numPixels; i++) if (ip[i] != op[i]) ecount++;
+
+  //  fprintf(stderr,"numPixels %d check %d hFontBM 0x%08lX Error count %d\n",numPixels,k,hFontBM,ecount);
+
+  if (ecount) {
+    emuFreeBitMap(hFontBM);
+    fprintf(stderr,"PutImage failed trying again...\n");
+    goto again;
+  }
+#endif
+  
+  mPhos = col;
+  
+  /* Set colour for graphics  */
+  CD.default_pixel = fg[col][0];
+
+}
+
+#if defined DEBUG_DISPLAY
+void testFont() {
+
+  unsigned int *ip;
+  XImage *tbm = emuGetImage(hFontBM, fontWidth, fontHeight*8);
+
+  fprintf(stderr,"testFont: tbm %d %d %d\n",tbm->width, tbm->height, tbm->depth);
+  ip = (unsigned int *)tbm->data;
+  
   //emuPutImage(hWnd, 0, 0, 800, 24, xfontBM, GXcopy);
   //goto out;
   emuBitBlt(hWnd,0,0,800,192,hFontBM,0,0,GXcopy);
   emuBitBlt(hWnd,0,192,800,192,hFontBM,800,0,GXcopy);
   emuBitBlt(hWnd,0,384,800,192,hFontBM,1600,0,GXcopy);
- out:
+  //out:
   emuFlush();
 }
-
+#else
+void testFont() {};
+#endif
 
 //################
 //#
@@ -140,7 +181,7 @@ void mkFontBM(int col) { /* col index 0=white, 1=green, 2=amber */
 // allocate screen bitmaps and font and find mother board switches ...
 // (I know, strange place to do that) 
 //
-VOID CreateScreenBitmap(VOID)  {
+VOID createScreenBitmap(VOID)  {
 //	BYTE i;
 
 // HP9816
@@ -168,13 +209,13 @@ VOID CreateScreenBitmap(VOID)  {
   Chipset.switch2 = 0xC0;
   CD.alpha_width  = 800;	// width in pc pixels
   CD.alpha_height = 600;	// height in pc pixels
-  CD.alpha_char_w =  10;
-  CD.alpha_char_h =  24;
+  CD.alpha_char_w = CHAR_W;
+  CD.alpha_char_h = CHAR_H;
   CD.graph_width  = 800;	// width in pc pixels
   CD.graph_bytes  =  50;	// 9816 width in bytes 50*8=400
   CD.graph_height = 600;	// height in pc pixesl
   CD.graph_visible = 30000;	// last address byte visible : 400x300/8 x 2 (only odd bytes)
-  CD.default_pixel = 0xffffff;
+  //  CD.default_pixel = 0xffffff;
 
   // create alpha1 bitmap
   hAlpha1BM = emuCreateBitMap(CD.alpha_width, CD.alpha_height);
@@ -186,22 +227,14 @@ VOID CreateScreenBitmap(VOID)  {
   // create screen bitmap
   hScreenBM = emuCreateBitMap(CD.alpha_width, CD.alpha_height);
   // font bitmap
-  mkFontBM(1);
-  // hFontBM = emuLoadBitMap("9816FontW.ppm");	// Load bitmap font
-  
-  ForceFullCopy();
- 
+  mkFontBM(bPhosphor);
 }
 
 //
 // free screen bitmap and font
 //
-VOID DestroyScreenBitmap(VOID) {
+VOID destroyScreenBitmap(VOID) {
 
-  if (hGraphImg != NULL) {
-    emuFreeImage(hGraphImg);
-    hGraphImg = NULL;
-  }
   if (hAlpha1BM != 0) {
     emuFreeBitMap(hAlpha1BM);
     hAlpha1BM = 0;
@@ -210,20 +243,24 @@ VOID DestroyScreenBitmap(VOID) {
     emuFreeBitMap(hAlpha2BM);
     hAlpha2BM = 0;
   }
-  if (hFontBM != 0) {
-    emuFreeBitMap(hFontBM);
-    hFontBM = 0;
+  if (hGraphImg != NULL) {
+    emuFreeImage(hGraphImg);
+    hGraphImg = NULL;
   }
   if (hScreenBM != 0) {
     emuFreeBitMap(hScreenBM);
     hScreenBM = 0;
   }
+  if (hFontBM != 0) {
+    emuFreeBitMap(hFontBM);
+    hFontBM = 0;
+  }
 }
 
 //
-// update display annuciators (via kml.c)
+// update right hand panel leds
 //
-VOID UpdateLeds(BOOL bForce) {
+VOID updateLeds(BOOL bForce) {
   int i,change=0;
   DWORD j=2;
 
@@ -258,7 +295,7 @@ VOID UpdateLeds(BOOL bForce) {
 
 static BYTE lasta=0;
 static WORD lastd=0;
-static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
+static VOID writeAlpha(BYTE a, WORD d, BYTE s) {
   INT  x0, xmin, xmax;
   INT  y0, ymin, ymax;
   int  op;
@@ -313,7 +350,7 @@ static VOID WriteToMainDisplay16(BYTE a, WORD d, BYTE s) {
 //
 // remove the blinking cursor if last on directly on main display bitmap
 //
-static VOID Cursor_Remove16(VOID) {
+static VOID cursorRemove(VOID) {
   WORD d;
   INT x0, y0;
 
@@ -337,10 +374,9 @@ static VOID Cursor_Remove16(VOID) {
 //
 // display the blinking cursor if needed
 //
-static VOID Cursor_Display16(VOID) {
+static VOID cursorDisplay(VOID) {
   int d;
   int x0, y0;
-  int op;
 
   CD.cursor = CD.cursor_new;			// new location on screen	
   if (CD.cursor_blink & CD.cnt)	return;		// should be off, return
@@ -390,7 +426,7 @@ static VOID Cursor_Display16(VOID) {
 // R14 :  $30 cursor pos : $30CF
 // R15 :  $CF  ""
 
-void Write_Regs16(BYTE *a) {
+void writeRegs(BYTE *a) {
   WORD	start_new;
 
   CD.regs[CD.reg] = *(--a);
@@ -414,10 +450,10 @@ void Write_Regs16(BYTE *a) {
     start_new = ((CD.regs[12] << 8) + CD.regs[13]) & 0x3FFF;
 
     if (start_new != CD.start) {
-      fprintf(stderr,"newstart %04x, was %04x\n",start_new,CD.start);
+      //fprintf(stderr,"newstart %04x, was %04x\n",start_new,CD.start);
       CD.start = start_new;
       CD.end = (start_new + 80*25) & 0x3FFF;
-      UpdateMainDisplay(FALSE);		// change of start
+      updateAlpha(FALSE);		// change of start
     }
     break;
   case 14:
@@ -425,12 +461,13 @@ void Write_Regs16(BYTE *a) {
     CD.cursor_new = ((CD.regs[14] << 8) + CD.regs[15]) & 0x3FFF;
     break;
   default:
+    if (CD.reg > 15) fprintf(stderr,"Bad Display register address %d\n",CD.reg);
     break;
   }
 //fprintf(stderr,"%06X: DISPLAY : Write.w reg %02d = %02X\n", Chipset.Cpu.PC, Chipset.Display16.reg, *a);
 }
   
-BYTE Write_Display16(BYTE *a, WORD d, BYTE s) {
+BYTE writeDisplay(BYTE *a, WORD d, BYTE s) {
 
   d &= 0x3FFF;
 
@@ -441,12 +478,13 @@ BYTE Write_Display16(BYTE *a, WORD d, BYTE s) {
     //			return BUS_ERROR;
     // no blink and all
     while (s) {
+      if (d < 0 || d >= ALPHASIZE) fprintf(stderr,"Bad alpha address %d\n",d);
       CD.alpha[d] = *(--a); 
       
       //if (*a > 32 && *a < 255) fprintf(stderr," Main Display %04X %c : %02X (%02X)\n", d, *a , *a, s);
       
       s--;
-      if ((d & 0x0001) == 0x0001)  WriteToMainDisplay16(*a, d >> 1, CD.alpha[d-1]);
+      if ((d & 0x0001) == 0x0001)  writeAlpha(*a, d >> 1, CD.alpha[d-1]);
       d++;
       // else return BUS_ERROR;
     }
@@ -461,7 +499,7 @@ BYTE Write_Display16(BYTE *a, WORD d, BYTE s) {
     }
     else if (d == 0x0002) {				// 6845 regs
       --a;
-      Write_Regs16(a);
+      writeRegs(a);
       return BUS_OK;
     } 
   } else if (s == 1) {					// acces in byte
@@ -471,7 +509,7 @@ BYTE Write_Display16(BYTE *a, WORD d, BYTE s) {
       return BUS_OK;
     }
     else if (d == 0x0003) {				// 6845 regs
-      Write_Regs16(a);
+      writeRegs(a);
       return BUS_OK;
     }
   }
@@ -482,11 +520,11 @@ BYTE Write_Display16(BYTE *a, WORD d, BYTE s) {
 // read in display IO space (too wide alpha ram, but nobody cares ...)
 // no CRT configuration reg for 9816 and 9836A
 //
-BYTE Read_Display16(BYTE *a, WORD d, BYTE s) {
+BYTE readDisplay(BYTE *a, WORD d, BYTE s) {
   d &= 0x3FFF;
   if ((d >= 0x2000) && (d <= 0x2000 + (ALPHASIZE<<1)-s)) {// DUAL port alpha video ram
 
-    // fprintf(stderr,"%06X: DISPLAY : Read alpha %04x = %02X\n", Chipset.Cpu.PC, d, CD.alpha[d & 0x3FF]);
+    // fprintf(stderr,"%06X: DISPLAY : readDisplay %04x = %02X\n", Chipset.Cpu.PC, d, CD.alpha[d & 0x3FF]);
 
     d -= 0x2000;
     while (d >= (WORD) (ALPHASIZE)) d -= (WORD) (ALPHASIZE);
@@ -510,7 +548,7 @@ BYTE Read_Display16(BYTE *a, WORD d, BYTE s) {
 //
 // read in graph mem space 
 //
-BYTE Read_Graph16(BYTE *a, WORD d, BYTE s) {
+BYTE readGraph(BYTE *a, WORD d, BYTE s) {
   BYTE graph_on;
 
   graph_on = (d & 0x8000) ? 0 : 1;	// address of read access switches graphics ON/OFF
@@ -551,15 +589,14 @@ BYTE Read_Graph16(BYTE *a, WORD d, BYTE s) {
   return BUS_OK;
 }
 
-static void PutPixel(int x, int y, unsigned int pixel) {
+static void putPixel(int x, int y, unsigned int pixel) {
    XPutPixel(hGraphImg, x,   y,	  pixel);
    XPutPixel(hGraphImg, x+1, y,	  pixel);
    XPutPixel(hGraphImg, x,   y+1, pixel);
    XPutPixel(hGraphImg, x+1, y+1, pixel);
 }
 
-BYTE Write_Graph16(BYTE *a, WORD d, BYTE s) {
-  LPBYTE ad;
+BYTE writeGraph(BYTE *a, WORD d, BYTE s) {
   WORD x0, y0;
   BYTE graph_on;
   int x,y;
@@ -602,14 +639,14 @@ BYTE Write_Graph16(BYTE *a, WORD d, BYTE s) {
       x = x0;
       y = y0;
 
-      PutPixel(x, y, (*a & 0x80) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x40) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x20) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x10) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x08) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x04) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x02) ? CD.default_pixel : 0); x+=2;
-      PutPixel(x, y, (*a & 0x01) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x80) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x40) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x20) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x10) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x08) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x04) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x02) ? CD.default_pixel : 0); x+=2;
+      putPixel(x, y, (*a & 0x01) ? CD.default_pixel : 0); x+=2;
 
       // adjust rectangle
       if (x   > CD.g_xmax) CD.g_xmax = x;
@@ -626,23 +663,25 @@ BYTE Write_Graph16(BYTE *a, WORD d, BYTE s) {
 //
 // reload graph bitmap from graph mem (only used when reloading system image in files.c)
 //
-VOID Reload_Graph(VOID) {
+VOID reloadGraph(VOID) {
   BYTE s;
   WORD d;
   int x,y;
-  
+
+  //fprintf(stderr,"reloadGraph %d\n",CD.graph_on);
+	 
   for (d = 1; d < CD.graph_visible; d+=2) {
     s = CD.graph[d];
     x = 2*((d>>1) % CD.graph_bytes)*8;
     y = 2*((d>>1) / CD.graph_bytes);
-    PutPixel(x, y, (s & 0x80) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x40) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x20) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x10) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x08) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x04) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x02) ? CD.default_pixel : 0); x+=2;
-    PutPixel(x, y, (s & 0x01) ? CD.default_pixel : 0);
+    putPixel(x, y, (s & 0x80) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x40) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x20) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x10) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x08) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x04) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x02) ? CD.default_pixel : 0); x+=2;
+    putPixel(x, y, (s & 0x01) ? CD.default_pixel : 0);
   }
   if (CD.graph_on) {
     CD.g_xmax = CD.graph_width;
@@ -657,16 +696,16 @@ VOID Reload_Graph(VOID) {
 // called with FALSE when start changes
 // called with TRUE on image load and system reset (files.c & mops.c)
 //
-VOID UpdateMainDisplay(BOOL bForce) { 
+VOID updateAlpha(BOOL bForce) { 
   int	nbytes = 25*80;
-  int	x0, y0,gcind = 0;
+  int	x0, y0;
   WORD	dVid;
   WORD	d;
   int	op;
   WORD	dy;
   BYTE	s;
 
-  fprintf(stderr,"%06X: Update Main Display, %d\n", Chipset.Cpu.PC, bForce);
+  // fprintf(stderr,"%06X: updateAlpha, %d\n", Chipset.Cpu.PC, bForce);
 
   d = CD.start;			// adress of begining of screen
 
@@ -707,7 +746,7 @@ VOID UpdateMainDisplay(BOOL bForce) {
 //
 // only copy what is needed from alpha1 and graph to screen
 //
-VOID Refresh_Display(BOOL bForce) {
+VOID refreshDisplay(BOOL bForce) {
   BYTE do_flush = 0;
 
   //fprintf(stderr,"%06X: Refresh Display, %d\n", Chipset.Cpu.PC, bForce);
@@ -748,15 +787,20 @@ VOID Refresh_Display(BOOL bForce) {
 // do VBL
 //
 
-VOID do_display_timers16(VOID)	{
+VOID doDisplayTimers(VOID)	{
   CD.cycles += Chipset.dcycles;
   if (CD.cycles >= dwVsyncRef) {// one vsync
     CD.cycles -= dwVsyncRef;
     CD.cnt ++;
     CD.cnt &= 0x3F;
-    Refresh_Display(FALSE);	// just rects
-    UpdateLeds(FALSE);		// changed annunciators only
-    Cursor_Remove16();		// do the blink 
-    Cursor_Display16();
+    if (mPhos != bPhosphor) {
+      mkFontBM(bPhosphor);
+      reloadGraph();
+      updateAlpha(TRUE);
+    }
+    refreshDisplay(FALSE);	// just rects
+    updateLeds(FALSE);		// changed annunciators only
+    cursorRemove();		// do the blink 
+    cursorDisplay();
   }
 }

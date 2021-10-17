@@ -23,7 +23,13 @@
 #include <time.h>
 #include <sys/time.h>
 
-static BOOL  bCpuSlow = TRUE;		// enable/disable real speed
+//#define DEBUG_CPU
+#if defined(DEBUG_CPU)
+static TCHAR buffer[256];
+static int k;
+#endif
+
+static BOOL fixedClock = TRUE;		// enable/disable real speed
 
 static long dwOldCyc;			// cpu cycles at last event
 static long dwSpeedRef;		        // timer value at last event
@@ -68,9 +74,9 @@ static inline long getTime() { // Returns timestamp in usecs
 
 static long dwNbCalls = 0;
 
-static BOOL __forceinline DoTimers(long dtime) {
+static BOOL __forceinline doTimers(long dtime) {
   long mtime,ttime;
-  if (!bCpuSlow) {	// compute elapsed time with High Performance counter 
+  if (!fixedClock) {	// compute elapsed time with High Performance counter 
 
     dwNbCalls++;
     mtime = getTime();
@@ -104,8 +110,11 @@ static BOOL __forceinline DoTimers(long dtime) {
 //
 // adjust emulation speed
 //
+#if defined(DEBUG_CPU)
 static int NTR=0;
-static __forceinline VOID AdjustSpeed(VOID) {
+#endif
+
+static __forceinline VOID adjustSpeed(VOID) {
   long dwTicks;
   long mtime,ttime;
   // cycles elapsed for next check
@@ -118,7 +127,11 @@ static __forceinline VOID AdjustSpeed(VOID) {
     dwTicks = getTime() - dwSpeedRef;         // usec ticks elapsed
     // if last command sequence took over 50ms -> synchronize
     if(dwTicks > 50 * dwTickRef) {	      // time for last commands > 50ms (223 at 4474 Hz)
-      fprintf(stderr,"NT workaround %d\n",NTR++);
+#if defined(DEBUG_CPU)      
+      k = wsprintf(buffer,"NT workaround %d\n",NTR++);
+      OutputDebugString(buffer);
+#endif
+      //      fprintf(stderr,
       dwOldCyc = Chipset.cycles;	      // new synchronizing
       dwSpeedRef = getTime();	              // save new reference time
     } else {
@@ -138,7 +151,7 @@ static __forceinline VOID AdjustSpeed(VOID) {
 // Set HP time and date
 // try to find if basic or pascal ...
 // 
-VOID SetHPTime(VOID)  {
+VOID setHPTime(VOID)  {
   WORD	   system = 0;
   WORD	   data;
   BYTE	   chr;
@@ -146,7 +159,9 @@ VOID SetHPTime(VOID)  {
   unsigned long  centisec, dw;	
   struct   tm *ts;
   time_t   mTime;
+#if defined(DEBUG_CPU)
   BYTE    *t;
+#endif
   
   while (1) {
     data = GetWORD(sysname);
@@ -173,9 +188,13 @@ VOID SetHPTime(VOID)  {
     Chipset.Keyboard.ram[0x2d] = (BYTE) (centisec & 0xFF);
     Chipset.Keyboard.ram[0x2e] = (BYTE) ((centisec >> 8) & 0xFF);
     Chipset.Keyboard.ram[0x2f] = (BYTE) ((centisec >> 16) & 0xFF);
+
+#if defined(DEBUG_CPU)
     t = &Chipset.Keyboard.ram[0x2d];
-    //    fprintf(stderr,"SetHPTime: %02x:%02x:%02x\n",t[0],t[1],t[2]);
-    
+    k = wsprintf(buffer,"SetHPTime: %02x:%02x:%02x\n",t[0],t[1],t[2]);
+      OutputDebugString(buffer);
+#endif
+ 
     ts->tm_year += 1900; // For NT compatibility
     
     // calculate days: today from 01.01.1970 for pascal 3 & basic 2
@@ -204,8 +223,11 @@ VOID SetHPTime(VOID)  {
 //
 // adjust delay variables from speed settings
 //
-VOID SetSpeed(WORD speed) {			// set emulation speed
-  fprintf(stderr,"Setting speed to %d\n",speed);
+VOID setSpeed(WORD speed) {			// set emulation speed
+#if defined(DEBUG_CPU)
+ k = wsprintf(buffer,"Setting speed to %d\n",speed);
+ OutputDebugString(buffer);
+#endif
   switch (speed) {
   case 0:					// max speed
     dwOldCyc = Chipset.cycles;
@@ -238,17 +260,21 @@ VOID SetSpeed(WORD speed) {			// set emulation speed
     wDivRef = 5;
     break;
   }
-  bCpuSlow = (speed != 0);			// save emulation speed 
+  fixedClock = (speed != 0);			// save emulation speed 
 }
 
 //
 // change thread state
 //
-UINT SwitchToState(UINT nNewState) {
+UINT switchToState(UINT nNewState) {
   UINT nOldState = nState;
 
   if (nState == nNewState) return nOldState;
-  // fprintf(stderr,"SwitchToState: %d, actual state: %d\n",nNewState, nState);
+#if defined(DEBUG_CPU)
+  k = wsprintf(buffer,"SwitchToState: %d, actual state: %d\n",nNewState, nState);
+  OutputDebugString(buffer);
+#endif
+ 
   switch (nState) {
   case SM_RUN: // Run
     switch (nNewState) {
@@ -256,14 +282,14 @@ UINT SwitchToState(UINT nNewState) {
       nNextState = SM_INVALID;
       bInterrupt = TRUE;			// leave inner emulation loop
       while (nState!=nNextState) usleep(10000);
-      UpdateWindowStatus();
+      updateWindowStatus();
       break;
     case SM_RETURN: // -> Return
       nNextState = SM_INVALID;
       bInterrupt = TRUE;			// leave inner emulation loop
       while (nState!=nNextState) usleep(10000);
       nNextState = SM_RETURN;
-      UpdateWindowStatus();
+      updateWindowStatus();
       break;
     }
     break;
@@ -274,7 +300,7 @@ UINT SwitchToState(UINT nNewState) {
       // don't enter opcode loop on interrupt request
       bInterrupt = FALSE;
       while (nState!=nNextState) usleep(10000);
-      UpdateWindowStatus();
+      updateWindowStatus();
       break;
     case SM_RETURN: // -> Return
       nNextState = SM_RETURN;
@@ -284,11 +310,11 @@ UINT SwitchToState(UINT nNewState) {
   }
   Chipset.annun &= ~1;
   Chipset.annun |= (nState==SM_RUN);
-  UpdateLeds(FALSE);
+  updateLeds(FALSE);
   return nOldState;
 }
 
-void *CpuEmulator(void * targ) {
+void *cpuEmulator(void * targ) {
   BYTE newI210 = 0;				// new interrupt level
   long mtime;
   
@@ -312,12 +338,16 @@ void *CpuEmulator(void * targ) {
   while (nNextState == SM_RUN) {
     if (nState != SM_RUN) {
       nState = SM_RUN;
-      UpdateLeds(FALSE);
+      updateLeds(FALSE);
 
-      if (Chipset.keeptime) SetHPTime();	// update HP time & date
+      if (Chipset.keeptime) setHPTime();	// update HP time & date
 
       // init speed reference
-      fprintf(stderr,"Initialise speed reference\n");
+#if defined(DEBUG_CPU)
+     k = wsprintf(buffer,"Initialise speed reference\n");
+     OutputDebugString(buffer);
+#endif
+ 
       Chipset.cycles = 0;
       Chipset.ccycles = 0;
       dwOldCyc = 0;
@@ -340,16 +370,16 @@ void *CpuEmulator(void * targ) {
       }
 
       // display
-      do_display_timers16(); 
+      doDisplayTimers(); 
 
       // HPIB controller
       DoHPIB();
       // HPIB Peripherals
-      if (Chipset.Hpib70x == 1) DoHp9121(&Chipset.Hp9121);
-      if (Chipset.Hpib72x == 3) DoHp9122(&Chipset.Hp9122);
-      if (Chipset.Hpib73x != 0) DoHp7908(&Chipset.Hp7908_0);
-      if (Chipset.Hpib74x != 0) DoHp7908(&Chipset.Hp7908_1);
-      if (Chipset.Hpib71x != 0) DoHp2225(&Chipset.Hp2225);
+      if (Chipset.Hpib700 == 1) DoHp9121(&Chipset.Hp9121);
+      if (Chipset.Hpib701 != 0) DoHp2225(&Chipset.Hp2225);
+      if (Chipset.Hpib702 == 3) DoHp9122(&Chipset.Hp9122);
+      if (Chipset.Hpib703 != 0) DoHp7908(&Chipset.Hp7908_0);
+      if (Chipset.Hpib704 != 0) DoHp7908(&Chipset.Hp7908_1);
       // keyboard
       Do_Keyboard();
 
@@ -357,19 +387,26 @@ void *CpuEmulator(void * targ) {
 	(Chipset.Hpib.h_int) ? 3 :
 	(Chipset.Keyboard.int68000 == 1) ? 1 : 0;
 
-      if (!bCpuSlow) {	// compute elapsed time with High Performance counter ?
+      if (!fixedClock) {	// compute elapsed time with High Performance counter ?
 	if (Chipset.ccycles > dwCyclesTimer) {		// enough MC68000 cycles for 2 ms ?
-	  if (DoTimers(Chipset.ccycles))		// ado it !
+	  if (doTimers(Chipset.ccycles))		// ado it !
 	    Chipset.ccycles -= dwCyclesTimer;
 	}
       } else						// slow mode at x MHz with cycles
 	if (Chipset.ccycles > dwBaseRef) {		// at least x*2000 MC68000 cycles ?
-	  DoTimers(Chipset.ccycles);
+	  doTimers(Chipset.ccycles);
 	  Chipset.ccycles -= dwBaseRef;
 	}
-      if (bCpuSlow) AdjustSpeed();	// adjust emulation speed to required frequency 
+      if (fixedClock) adjustSpeed();	// adjust emulation speed to required frequency 
     }
     bInterrupt = FALSE;			// be sure to reenter opcode loop
   }
   goto loop;
+}
+
+int checkChipset() {
+
+  for (int i=0; i<sizeof(Chipset.Filler); i++)
+    if (Chipset.Filler[i]) return 0;
+  return 1;
 }

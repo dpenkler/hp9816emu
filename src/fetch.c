@@ -201,13 +201,13 @@ BYTE write_ea(EA *ea, MEM result) {
   case EA_NONE:
     break;
   case EA_CST:
-    emuInfoMessage(_T("EA_CST destination ??"));
+    emuInfoMessage("EA_CST destination ??");
     break;
   case EA_D:											// direct Dn
     if (ea->isize == 1)Chipset.Cpu.D[ea->reg].b[0] = result.b[0];
     else if (ea->isize == 2) Chipset.Cpu.D[ea->reg].w[0] = result.w[0];
     else if (ea->isize == 4) Chipset.Cpu.D[ea->reg].l = result.l;
-    else emuInfoMessage(_T("EA_D isize ??"));
+    else emuInfoMessage("EA_D isize ??");
     break;
   case EA_A:									// direct An
     if (Chipset.Cpu.SR.S && (ea->reg == 7)) {
@@ -215,13 +215,13 @@ BYTE write_ea(EA *ea, MEM result) {
 	result.w[1] = (result.w[0] & 0x8000) ? 0xFFFF : 0x0000;
 	Chipset.Cpu.A[8].l = result.l;
       } else if (ea->isize == 4) Chipset.Cpu.A[8].l = result.l;
-      else emuInfoMessage(_T("EA_A isize ??"));
+      else emuInfoMessage("EA_A isize ??");
     } else {
       if (ea->isize == 2) {
 	result.w[1] = (result.w[0] & 0x8000) ? 0xFFFF : 0x0000;
 	Chipset.Cpu.A[ea->reg].l = result.l;
       } else if (ea->isize == 4) Chipset.Cpu.A[ea->reg].l = result.l;
-      else emuInfoMessage(_T("EA_A isize ??"));
+      else emuInfoMessage("EA_A isize ??");
     }
     break;
   case EA_IAI:									// indirect (An)+
@@ -254,7 +254,7 @@ BYTE write_ea(EA *ea, MEM result) {
     Chipset.dcycles += (ea->isize == 4) ? 8 : 4;
     break;
   case EA_IMM:
-    emuInfoMessage(_T("EA_IMM destination ??"));
+    emuInfoMessage("EA_IMM destination ??");
     break;
   case EA_CCR:
     Chipset.Cpu.SR.r[0] = result.b[0] & 0x1F;		// mask for ccr bits
@@ -286,7 +286,7 @@ BYTE read_ea(EA *ea, BOOL inc) {
     if (ea->isize == 1) ea->data.b[0] = Chipset.Cpu.D[ea->reg].b[0];
     else if (ea->isize == 2) ea->data.w[0] = Chipset.Cpu.D[ea->reg].w[0];
     else if (ea->isize == 4) ea->data.l = Chipset.Cpu.D[ea->reg].l;
-    else emuInfoMessage(_T("EA_D isize ??"));
+    else emuInfoMessage("EA_D isize ??");
     break;
   case EA_A:									// direct An
     if (Chipset.Cpu.SR.S && (ea->reg == 7)) {
@@ -294,13 +294,13 @@ BYTE read_ea(EA *ea, BOOL inc) {
 	ea->data.w[0] = Chipset.Cpu.A[8].w[0];
 	ea->data.w[1] = (ea->data.w[0] & 0x8000) ? 0xFFFF : 0x0000;		// sign extension
       } else if (ea->isize == 4) ea->data.l = Chipset.Cpu.A[8].l;
-      else emuInfoMessage(_T("EA_A isize 1 ??"));
+      else emuInfoMessage("EA_A isize 1 ??");
     } else {
       if (ea->isize == 2) {
 	ea->data.w[0] = Chipset.Cpu.A[ea->reg].w[0];
 	ea->data.w[1] = (ea->data.w[0] & 0x8000) ? 0xFFFF : 0x0000;		// sign extension
       } else if (ea->isize == 4) ea->data.l = Chipset.Cpu.A[ea->reg].l;
-      else emuInfoMessage(_T("EA_A isize 1 ??"));
+      else emuInfoMessage("EA_A isize 1 ??");
     }
     break;
   case EA_IAI:									// indirect (An)+

@@ -1236,7 +1236,6 @@ BOOL hp9121_widle(HP9121 *ctrl) {
 
 VOID hp9121_reset(VOID *controler) {
   HP9121 *ctrl = (HP9121 *) controler;
-  BYTE i;
 
   ctrl->type[0] = 0x01;			// $0104   82901
   ctrl->type[1] = 0x04;
@@ -1244,17 +1243,17 @@ VOID hp9121_reset(VOID *controler) {
   ctrl->config_cylinders = 35;		// 35 - 2 spares ...
   ctrl->config_sectors = 16;
   
-  for (i = 0; i < 1; i++) {
-    if (ctrl->name[i][0] != 0x00) {
-      hp9121_load(ctrl, i, ctrl->name[i]);
+  for (int unit = 0; unit < 2; unit++) {
+    if (ctrl->name[unit][0] != 0x00) {
+      hp9121_load(ctrl, unit, ctrl->name[unit]);
     }
-    if (ctrl->name[i][0] == 0x00) {
-      emuUpdateButton(ctrl->hpibaddr, i ,"");
+    if (ctrl->name[unit][0] == 0x00) {
+      emuUpdateButton(ctrl->hpibaddr, unit ,"");
     }
-    ctrl->head[i] = 0;
-    ctrl->cylinder[i] = 0;
-    ctrl->sector[i] = 0;
-    ctrl->addr[i] = 0;
+    ctrl->head[unit]     = 0;
+    ctrl->cylinder[unit] = 0;
+    ctrl->sector[unit]   = 0;
+    ctrl->addr[unit]     = 0;
   }
   ctrl->unit = 0;
   ctrl->st9121 = 0;				// state of hp9121 controller
@@ -1277,7 +1276,7 @@ VOID hp9121_stop(VOID *controler) {
   HP9121 *ctrl = (HP9121 *) controler;
   int unit;
 
-  for (unit = 0; unit < 1; unit++) {
+  for (unit = 0; unit < 2; unit++) {
     if (ctrl->disk[unit] != NULL)
       free(ctrl->disk[unit]);
     ctrl->disk[unit] = NULL;

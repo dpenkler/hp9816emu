@@ -87,36 +87,6 @@ static VOID GetLifName(HPSS80 *ctrl, BYTE unit) {
 }
 
 //
-// adjust sector address of unit if overflow
-//
-static VOID raj_addr(HPSS80 *ctrl, BYTE u) {
-  while (ctrl->sector[u] >= ctrl->nsectors[u])	    ctrl->sector[u]   -= ctrl->nsectors[u];
-  while (ctrl->head[u] >= ctrl->nheads[u])	    ctrl->head[u]     -= ctrl->nheads[u];
-  while (ctrl->cylinder[u] >= ctrl->ncylinders[u])  ctrl->cylinder[u] -= ctrl->ncylinders[u];
-  ctrl->addr[u] = (ctrl->sector[u] + 
-		   ctrl->head[u] * ctrl->nsectors[u] + 
-		   ctrl->cylinder[u] * ctrl->nheads[u] * ctrl->nsectors[u]
-		   ) * ctrl->nbsector[u];
-}
-
-//
-// increment sector address of unit
-//
-static VOID inc_addr(HPSS80 *ctrl, BYTE u) {
-  ctrl->sector[u]++;
-  if (ctrl->sector[u] >= ctrl->nsectors[u]) {
-    ctrl->sector[u] = 0;
-    ctrl->head[u]++;
-    if (ctrl->head[u] >= ctrl->nheads[u]) {
-      ctrl->head[u] = 0;
-      ctrl->cylinder[u]++;
-      if (ctrl->cylinder[u] >= ctrl->ncylinders[u]) ctrl->cylinder[u] = 0;	// wrap
-    }
-  }
-  raj_addr(ctrl, u);
-}
-
-//
 // get a command byte from circular buffer with delay
 //
 static BOOL pop_c(HPSS80 *ctrl, BYTE *c) {
@@ -1743,62 +1713,61 @@ BOOL hp9122_widle(HPSS80 *ctrl) {
 //
 VOID hp9122_reset(VOID *controler) {
   HPSS80 *ctrl = (HPSS80 *) controler;
-  BYTE i;
 
-  for (i = 0; i < 2; i++) {
-    if (ctrl->name[i][0] != 0x00) {
-      hp9122_load(ctrl, i, ctrl->name[i]);
+  for (int unit = 0; unit < 2; unit++) {
+    if (ctrl->name[unit][0] != 0x00) {
+      hp9122_load(ctrl, unit, ctrl->name[unit]);
     }
-    if (ctrl->name[i][0] == 0x00) {
-      emuUpdateButton(ctrl->hpibaddr, ctrl->unit, "");
+    if (ctrl->name[unit][0] == 0x00) {
+      emuUpdateButton(ctrl->hpibaddr, unit, "");
     }
 
-    ctrl->head[i] = 0;
-    ctrl->cylinder[i] = 0;
-    ctrl->sector[i] = 0;
-    ctrl->addr[i] = 0;
+    ctrl->head[unit]     = 0;
+    ctrl->cylinder[unit] = 0;
+    ctrl->sector[unit]   = 0;
+    ctrl->addr[unit]     = 0;
 
-    ctrl->addressh[i] = 0;
-    ctrl->address[i] = 0;
-    ctrl->length[i] = 0xFFFFFFFF;
-    ctrl->mask[i].status[0] = 0;
-    ctrl->mask[i].status[1] = 0;
-    ctrl->mask[i].status[2] = 0;
-    ctrl->mask[i].status[3] = 0;
-    ctrl->mask[i].status[4] = 0;
-    ctrl->mask[i].status[5] = 0;
-    ctrl->mask[i].status[6] = 0;
-    ctrl->mask[i].status[7] = 0;
-    ctrl->err[i].status[0] = 0;
-    ctrl->err[i].status[1] = 0;
-    ctrl->err[i].status[2] = 0;
-    ctrl->err[i].status[3] = 0;
-    ctrl->err[i].status[4] = 0;
-    ctrl->err[i].status[5] = 0;
-    ctrl->err[i].status[6] = 0;
-    ctrl->err[i].status[7] = 0;
-    ctrl->err[i].power_fail = 1;				// disk changed
-    ctrl->qstat[i] = 2;
+    ctrl->addressh[unit] = 0;
+    ctrl->address[unit] = 0;
+    ctrl->length[unit] = 0xFFFFFFFF;
+    ctrl->mask[unit].status[0] = 0;
+    ctrl->mask[unit].status[1] = 0;
+    ctrl->mask[unit].status[2] = 0;
+    ctrl->mask[unit].status[3] = 0;
+    ctrl->mask[unit].status[4] = 0;
+    ctrl->mask[unit].status[5] = 0;
+    ctrl->mask[unit].status[6] = 0;
+    ctrl->mask[unit].status[7] = 0;
+    ctrl->err[unit].status[0] = 0;
+    ctrl->err[unit].status[1] = 0;
+    ctrl->err[unit].status[2] = 0;
+    ctrl->err[unit].status[3] = 0;
+    ctrl->err[unit].status[4] = 0;
+    ctrl->err[unit].status[5] = 0;
+    ctrl->err[unit].status[6] = 0;
+    ctrl->err[unit].status[7] = 0;
+    ctrl->err[unit].power_fail = 1;				// disk changed
+    ctrl->qstat[unit] = 2;
   }
-  i = 15;
-  ctrl->mask[i].status[0] = 0;
-  ctrl->mask[i].status[1] = 0;
-  ctrl->mask[i].status[2] = 0;
-  ctrl->mask[i].status[3] = 0;
-  ctrl->mask[i].status[4] = 0;
-  ctrl->mask[i].status[5] = 0;
-  ctrl->mask[i].status[6] = 0;
-  ctrl->mask[i].status[7] = 0;
-  ctrl->err[i].status[0] = 0;
-  ctrl->err[i].status[1] = 0;
-  ctrl->err[i].status[2] = 0;
-  ctrl->err[i].status[3] = 0;
-  ctrl->err[i].status[4] = 0;
-  ctrl->err[i].status[5] = 0;
-  ctrl->err[i].status[6] = 0;
-  ctrl->err[i].status[7] = 0;
-  ctrl->err[i].power_fail = 1;					// power-up
-  ctrl->qstat[i] = 2;
+  int unit = 15;
+  ctrl->mask[unit].status[0] = 0;
+  ctrl->mask[unit].status[1] = 0;
+  ctrl->mask[unit].status[2] = 0;
+  ctrl->mask[unit].status[3] = 0;
+  ctrl->mask[unit].status[4] = 0;
+  ctrl->mask[unit].status[5] = 0;
+  ctrl->mask[unit].status[6] = 0;
+  ctrl->mask[unit].status[7] = 0;
+  ctrl->err[unit].status[0] = 0;
+  ctrl->err[unit].status[1] = 0;
+  ctrl->err[unit].status[2] = 0;
+  ctrl->err[unit].status[3] = 0;
+  ctrl->err[unit].status[4] = 0;
+  ctrl->err[unit].status[5] = 0;
+  ctrl->err[unit].status[6] = 0;
+  ctrl->err[unit].status[7] = 0;
+  ctrl->err[unit].power_fail = 1;					// power-up
+  ctrl->qstat[unit] = 2;
 
   ctrl->unit = 0;
   ctrl->volume = 0;

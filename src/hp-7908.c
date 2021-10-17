@@ -36,7 +36,7 @@ static int k;
 #define DELAY_CMD 50						// delay for command response (you should not respond too fast)
 
 // size of disks
-static DWORD disk_size[] = {16576000, 28114944, 65601536};
+//static DWORD disk_size[] = {16576000, 28114944, 65601536};
 static DWORD disk_sectors[] = {64750, 109824, 256256};
 
 //################
@@ -63,36 +63,6 @@ static VOID GetLifName(HPSS80 *ctrl, BYTE unit) {
   if (i == 6) ctrl->lifname[unit][i] = 0x00;
 }
 
-//
-// adjust address of sector for unit u
-//
-static VOID raj_addr(HPSS80 *ctrl, BYTE u) {
-  while (ctrl->sector[u] >= ctrl->nsectors[u]) ctrl->sector[u] -= ctrl->nsectors[u];
-  while (ctrl->head[u] >= ctrl->nheads[u]) ctrl->head[u] -= ctrl->nheads[u];
-  while (ctrl->cylinder[u] >= ctrl->ncylinders[u])  ctrl->cylinder[u] -= ctrl->ncylinders[u];
-  ctrl->addr[u] = (ctrl->sector[u] + 
-		   ctrl->head[u] * ctrl->nsectors[u] + 
-		   ctrl->cylinder[u] * ctrl->nheads[u] * ctrl->nsectors[u]
-		   ) * ctrl->nbsector[u];
-}
-
-//
-// inc address of sector for unit u
-//
-static VOID inc_addr(HPSS80 *ctrl, BYTE u) {
-  ctrl->sector[u]++;
-  if (ctrl->sector[u] >= ctrl->nsectors[u]) {
-    ctrl->sector[u] = 0;
-    ctrl->head[u]++;
-    if (ctrl->head[u] >= ctrl->nheads[u]) {
-      ctrl->head[u] = 0;
-      ctrl->cylinder[u]++;
-      if (ctrl->cylinder[u] >= ctrl->ncylinders[u])
-	ctrl->cylinder[u] = 0;	// wrap
-    }
-  }
-  raj_addr(ctrl, u);
-}
 
 //
 // get a command from HPIB circular buffer if delay elapsed
@@ -831,7 +801,7 @@ VOID DoHp7908(HPSS80 *ctrl) {
       emuUpdateButton(ctrl->hpibaddr,ctrl->unit, ctrl->lifname[ctrl->unit]);
     }
     ctrl->address[ctrl->unit]++;
-    if (ctrl->count == ctrl->nbsector[ctrl->unit]) {		// last from sector sended
+    if (ctrl->count == ctrl->nbsector[ctrl->unit]) {		// last from sector sent
       if (ctrl->address[ctrl->unit] == disk_sectors[ctrl->type[0]])
 	ctrl->address[ctrl->unit] = 0;		// wrap
       ctrl->stss80 = 2302;			// prepare to read the next
@@ -1606,7 +1576,7 @@ BOOL hp7908_eject(HPSS80 *ctrl, BYTE unit) {
 //	ctrl->err[unit].power_fail = 1;					// disk changed
 
 	ctrl->lifname[unit][0] = 0x00;
-	emuUpdateButton(ctrl->hpibaddr, unit, ctrl->lifname[unit]);
+	emuUpdateButton(ctrl->hpibaddr, unit, NULL);
 
 	return TRUE;
 }
@@ -1627,7 +1597,7 @@ VOID hp7908_reset(VOID *controler) {
   i = 0;
   if (ctrl->name[i][0] != 0x00) {
     hp7908_load(ctrl, i, ctrl->name[i]);
-  } else emuUpdateButton(ctrl->hpibaddr, i, "");
+  } else emuUpdateButton(ctrl->hpibaddr, i, NULL);
 
   ctrl->head[i] = 0;
   ctrl->cylinder[i] = 0;
@@ -1702,5 +1672,5 @@ VOID hp7908_stop(VOID *controler) {
   }
 
   ctrl->lifname[0][0] = 0x00;
-  emuUpdateButton(ctrl->hpibaddr, ctrl->unit,"");
+  emuUpdateButton(ctrl->hpibaddr, ctrl->unit, NULL);
 }

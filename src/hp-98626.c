@@ -20,10 +20,6 @@
 	int k;
 #endif
 
-// hp98626 controller variables
-
-static WORD st98626 = 0;								// state of hp98626 controller
-
 //################
 //#
 //#    Low level subroutines
@@ -186,7 +182,7 @@ VOID Do_Acia_Keyboard() {
       Chipset.Serial.status |= 0x01;									// set Receive Data Register Full
       if (Chipset.Serial.control & 0x80) {								// CR7 enable interrupt
 #if defined DEBUG_98626
-	k = sprintf(buffer,_T("        : MC6850 : INTERRUPT !\n"));
+	k = sprintf(buffer,"        : MC6850 : INTERRUPT !\n");
 	//	OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 	Chipset.Serial.status |= 0x80;									// set interrupt wanted

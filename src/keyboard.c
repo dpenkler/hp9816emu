@@ -411,9 +411,9 @@ VOID Init_Keyboard(VOID) {
 	keycode[i][j] = uskeycode[i][j];
     }
   }
-  if (Chipset.keeptime) SetHPTime();
+  if (Chipset.keeptime) setHPTime();
 #if defined DEBUG_KEYBOARDH
-  k = sprintf(buffer,_T("	 : KEYBOARD : Init\n"));
+  k = sprintf(buffer,"	 : KEYBOARD : Init\n");
   OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 }
@@ -470,7 +470,7 @@ VOID Do_Keyboard_Timers(DWORD cycles) {	// in 2.457MHz base clock
     CK.ram[0x2D]++;			// adjust clock
     if (CK.ram[0x2D] == 0) {
       if ((Chipset.keeptime) && (CK.ram[0x30] == 0) && (CK.ram[0x31] == 0))
-	SetHPTime();			// set time after bootrom erased it at boot (256 centisecond elapsed)
+	setHPTime();			// set time after bootrom erased it at boot (256 centisecond elapsed)
       CK.ram[0x2E]++;
       if ((CK.ram[0x2F] >= 0x83) && (CK.ram[0x2E] >= 0xD6)) {	// wrap on day
 	CK.ram[0x2F] = 0x00;

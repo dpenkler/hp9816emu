@@ -35,47 +35,46 @@ static int k;
 //		unsigned long l;
 #endif
 
-
 int bDebugOn=1;
   
 #if defined(DEBUG_HPIB) || defined(DEBUG_HPIBS)
 static TCHAR *HPIB_CMD[] = {
-  _T(""),_T("GTL"),_T(""),_T(""),_T("SDC"),_T("PPC"),_T(""),_T(""),_T("GET"),_T("TCT"),
-  _T(""),_T(""),_T(""),_T(""),_T(""),_T(""),_T(""),_T("LLO"),_T(""),_T(""),
-  _T("DCL"),_T("PPU"),_T(""),_T(""),_T("SPE"),_T("SPD"),_T(""),_T(""),_T(""),_T(""),
-  _T(""),_T(""),
-  _T("MLA0"),_T("MLA1"),_T("MLA2"),_T("MLA3"),_T("MLA4"),_T("MLA5"),_T("MLA6"),_T("MLA7"),_T("MLA8"),_T("MLA9"),
-  _T("MLA10"),_T("MLA11"),_T("MLA12"),_T("MLA13"),_T("MLA14"),_T("MLA15"),_T("MLA16"),_T("MLA17"),_T("MLA18"),_T("MLA19"),
-  _T("MLA20"),_T("MLA21"),_T("MLA22"),_T("MLA23"),_T("MLA24"),_T("MLA25"),_T("MLA26"),_T("MLA27"),_T("MLA28"),_T("MLA29"),
-  _T("MLA30"),_T("UNL"),
-  _T("MTA0"),_T("MTA1"),_T("MTA2"),_T("MTA3"),_T("MTA4"),_T("MTA5"),_T("MTA6"),_T("MTA7"),_T("MTA8"),_T("MTA9"),
-  _T("MTA10"),_T("MTA11"),_T("MTA12"),_T("MTA13"),_T("MTA14"),_T("MTA15"),_T("MTA16"),_T("MTA17"),_T("MTA18"),_T("MTA19"),
-  _T("MTA20"),_T("MTA21"),_T("MTA22"),_T("MTA23"),_T("MTA24"),_T("MTA25"),_T("MTA26"),_T("MTA27"),_T("MTA28"),_T("MTA29"),
-  _T("MTA30"),_T("UNT"),
-  _T("MSA0"),_T("MSA1"),_T("MSA2"),_T("MSA3"),_T("MSA4"),_T("MSA5"),_T("MSA6"),_T("MSA7"),_T("MSA8"),_T("MSA9"),
-  _T("MSA10"),_T("MSA11"),_T("MSA12"),_T("MSA13"),_T("MSA14"),_T("MSA15"),_T("MSA16"),_T("MSA17"),_T("MSA18"),_T("MSA19"),
-  _T("MSA20"),_T("MSA21"),_T("MSA22"),_T("MSA23"),_T("MSA24"),_T("MSA25"),_T("MSA26"),_T("MSA27"),_T("MSA28"),_T("MSA29"),
-  _T("MSA30"),_T("")
+  "","GTL","","","SDC","PPC","","","GET","TCT",
+  "","","","","","","","LLO","","",
+  "DCL","PPU","","","SPE","SPD","","","","",
+  "","",
+  "MLA0","MLA1","MLA2","MLA3","MLA4","MLA5","MLA6","MLA7","MLA8","MLA9",
+  "MLA10","MLA11","MLA12","MLA13","MLA14","MLA15","MLA16","MLA17","MLA18","MLA19",
+  "MLA20","MLA21","MLA22","MLA23","MLA24","MLA25","MLA26","MLA27","MLA28","MLA29",
+  "MLA30","UNL",
+  "MTA0","MTA1","MTA2","MTA3","MTA4","MTA5","MTA6","MTA7","MTA8","MTA9",
+  "MTA10","MTA11","MTA12","MTA13","MTA14","MTA15","MTA16","MTA17","MTA18","MTA19",
+  "MTA20","MTA21","MTA22","MTA23","MTA24","MTA25","MTA26","MTA27","MTA28","MTA29",
+  "MTA30","UNT",
+  "MSA0","MSA1","MSA2","MSA3","MSA4","MSA5","MSA6","MSA7","MSA8","MSA9",
+  "MSA10","MSA11","MSA12","MSA13","MSA14","MSA15","MSA16","MSA17","MSA18","MSA19",
+  "MSA20","MSA21","MSA22","MSA23","MSA24","MSA25","MSA26","MSA27","MSA28","MSA29",
+  "MSA30",""
 };
 
 static TCHAR *HPIB_9114[] = {
-  _T("clear swrst"), _T("clear dacr"), _T("rhdf"), _T("clear hdfa"),
-  _T("clear hdfe"), _T("nbaf"), _T("clear fget"), _T("clear rtl"),
-  _T("feoi"), _T("clear lon"), _T("clear ton"), _T("gts"),
-  _T("tca"), _T("tcs"), _T("clear rpp"), _T("clear sic"),
-  _T("clear sre"), _T("rqc"), _T("rlc"), _T("clear dai"),
-  _T("pts"), _T("clear stdl"), _T("clear shdw"), _T("clear vstdl"),
-  _T("clear rsv2"), _T("clear 19"), _T("clear 1A"), _T("clear 1B"),
-  _T("clear 1C"), _T("clear 1D"), _T("clear 1E"), _T("clear 1F"),
+  "clear swrst", "clear dacr", "rhdf", "clear hdfa",
+  "clear hdfe", "nbaf", "clear fget", "clear rtl",
+  "feoi", "clear lon", "clear ton", "gts",
+  "tca", "tcs", "clear rpp", "clear sic",
+  "clear sre", "rqc", "rlc", "clear dai",
+  "pts", "clear stdl", "clear shdw", "clear vstdl",
+  "clear rsv2", "clear 19", "clear 1A", "clear 1B",
+  "clear 1C", "clear 1D", "clear 1E", "clear 1F",
 
-  _T("set swrst"), _T("set dacr"), _T("rhdf"), _T("set hdfa"),
-  _T("set hdfe"), _T("nbaf"), _T("set fget"), _T("set rtl"),
-  _T("feoi"), _T("set lon"), _T("set ton"), _T("gts"),
-  _T("tca"), _T("tcs"), _T("set rpp"), _T("set sic"),
-  _T("set sre"), _T("rqc"), _T("rlc"), _T("set dai"),
-  _T("pts"), _T("set stdl"), _T("set shdw"), _T("set vstdl"),
-  _T("set rsv2"), _T("set 19"), _T("set 1A"), _T("set 1B"),
-  _T("set 1C"), _T("set 1D"), _T("set 1E"), _T("set 1F")
+  "set swrst", "set dacr", "rhdf", "set hdfa",
+  "set hdfe", "nbaf", "set fget", "set rtl",
+  "feoi", "set lon", "set ton", "gts",
+  "tca", "tcs", "set rpp", "set sic",
+  "set sre", "rqc", "rlc", "set dai",
+  "pts", "set stdl", "set shdw", "set vstdl",
+  "set rsv2", "set 19", "set 1A", "set 1B",
+  "set 1C", "set 1D", "set 1E", "set 1F"
 };
 #endif
 
@@ -139,96 +138,98 @@ static HPIB_INST hpib_bus[8];		// max 8 instruments
 //
 VOID hpib_names(VOID) {
   Chipset.annun &= ~(1 << 1);
-  if (Chipset.Hpib70x == 1) {
+  if (Chipset.Hpib700 == 1) {
     emuUpdateDisk(0, hpib_name[1]);
-    if (Chipset.Hp9121.lifname[0][0] != 0x00)
+    if (Chipset.Hp9121.disk[0])
       emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, Chipset.Hp9121.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "");
-    if (Chipset.Hp9121.lifname[1][0] != 0x00)
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, NULL);
+    if (Chipset.Hp9121.disk[1])
       emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, Chipset.Hp9121.lifname[1]);
     else
-      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "");
+      emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, NULL);
     Chipset.annun |= (1 << 1);
   } else {
     emuUpdateDisk(0, hpib_name[0]);
-    emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, "");
-    emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, "");
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 0, NULL);
+    emuUpdateButton(Chipset.Hp9121.hpibaddr, 1, NULL);
   }
   
   Chipset.annun &= ~(1 << 4);
-  if (Chipset.Hpib72x == 3) {
-    if (Chipset.Hp9122.lifname[0][0] != 0x00)
+  if (Chipset.Hpib702 == 3) {
+    emuUpdateDisk(1, hpib_name[2]);
+    if (Chipset.Hp9122.disk[0])
       emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, Chipset.Hp9122.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, "");
-    if (Chipset.Hp9122.lifname[1][0] != 0x00)
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, NULL);
+    if (Chipset.Hp9122.disk[1])
       emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, Chipset.Hp9122.lifname[1]);
     else
-      emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, "");
+      emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, NULL);
     Chipset.annun |= (1 << 4);
   } else {
     emuUpdateDisk(1, hpib_name[0]);
-    emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, "");
-    emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, "");
+    emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, NULL);
+    emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, NULL);
   }
-  
   Chipset.annun &= ~(1 << 7);
-  switch (Chipset.Hpib73x) {
+  switch (Chipset.Hpib703) {
   case 1:
-    if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
+    emuUpdateDisk(2, hpib_name[3]);		// 7908
+    if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, "");
-    emuUpdateDisk(2, hpib_name[6]);		// 7908
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, NULL);
     Chipset.annun |= (1 << 7);
     break;
   case 2:
-    if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
+    emuUpdateDisk(2, hpib_name[4]);		// 7911
+    if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0,  "");
-    emuUpdateDisk(2, hpib_name[7]);		// 7911
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0,  NULL);
     Chipset.annun |= (1 << 7);
     break;
   case 3:
-    if (Chipset.Hp7908_0.lifname[0][0] == 0x00)
+    emuUpdateDisk(2, hpib_name[5]);		// 7912
+    if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, "");
-    emuUpdateDisk(2, hpib_name[8]);		// 7912
+      emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, NULL);
     Chipset.annun |= (1 << 7);
     break;
+  default:
+    emuUpdateDisk(2, hpib_name[0]);		// none 
   }
   
   Chipset.annun &= ~(1 << 9);
-  switch (Chipset.Hpib74x) {
-  case 1:
-    if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
+  switch (Chipset.Hpib704) {
+  case 1: 
+    emuUpdateDisk(3, hpib_name[3]);		// 7908
+    if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
-    emuUpdateDisk(3, hpib_name[3]);		// 7908
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, NULL);
     Chipset.annun |= (1 << 9);
     break;
   case 2:
-    if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
+    emuUpdateDisk(3, hpib_name[4]);		// 7911
+    if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
-    emuUpdateDisk(3, hpib_name[4]);		// 7911
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, NULL);
     Chipset.annun |= (1 << 9);
     break;
   case 3:
-    if (Chipset.Hp7908_1.lifname[0][0] == 0x00)
+    emuUpdateDisk(3, hpib_name[5]);		// 7912
+    if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
-      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, "");
-    emuUpdateDisk(3, hpib_name[5]);		// 7912
+      emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, NULL);
     Chipset.annun |= (1 << 9);
     break;
   default:
-    emuUpdateDisk(3, hpib_name[0]);		// 7912 
+    emuUpdateDisk(3, hpib_name[0]);		// none 
   }
 }
 
@@ -238,7 +239,7 @@ VOID hpib_names(VOID) {
 VOID hpib_init(VOID) {
   BYTE i = 0;
 
-  if (Chipset.Hpib71x) {				// add 701 printer ?
+  if (Chipset.Hpib701) {				// add 701 printer ?
     hpib_bus[i].send_d = hp2225_push_d;
     hpib_bus[i].send_c = hp2225_push_c;
     hpib_bus[i].init   = hp2225_reset;
@@ -246,7 +247,7 @@ VOID hpib_init(VOID) {
     hpib_bus[i++].ctrl = (VOID *) (&Chipset.Hp2225);
     Chipset.Hp2225.hpibaddr = 1;
   }
- if (Chipset.Hpib70x == 1) {				// add 700 unit 9121
+ if (Chipset.Hpib700 == 1) {				// add 700 unit 9121
     hpib_bus[i].send_d = hp9121_push_d;
     hpib_bus[i].send_c = hp9121_push_c;
     hpib_bus[i].init   = hp9121_reset;
@@ -255,7 +256,7 @@ VOID hpib_init(VOID) {
     Chipset.Hp9121.hpibaddr = 0;
     Chipset.Hp9121.ctype = 0;
   }
-  if (Chipset.Hpib72x == 3) {				// add 702 unit 9122
+  if (Chipset.Hpib702 == 3) {				// add 702 unit 9122
     hpib_bus[i].send_d = hp9122_push_d;
     hpib_bus[i].send_c = hp9122_push_c;
     hpib_bus[i].init   = hp9122_reset;
@@ -263,7 +264,7 @@ VOID hpib_init(VOID) {
     hpib_bus[i++].ctrl = (VOID *) (&Chipset.Hp9122);
     Chipset.Hp9122.hpibaddr = 2;
   }
-   switch (Chipset.Hpib73x) {				// add 703 unit
+   switch (Chipset.Hpib703) {				// add 703 unit
   default:
     break;
   case 1:						// hp7908
@@ -275,10 +276,10 @@ VOID hpib_init(VOID) {
     hpib_bus[i].stop   = hp7908_stop;
     hpib_bus[i++].ctrl = (VOID *) (&Chipset.Hp7908_0);
     Chipset.Hp7908_0.hpibaddr = 3;
-    Chipset.Hp7908_0.type[0] = Chipset.Hpib73x - 1;
+    Chipset.Hp7908_0.type[0] = Chipset.Hpib703 - 1;
     break;
   }
-  switch (Chipset.Hpib74x) {				// add 704 unit
+  switch (Chipset.Hpib704) {				// add 704 unit
   default:
     break;
   case 1:						// hp7908
@@ -290,7 +291,7 @@ VOID hpib_init(VOID) {
     hpib_bus[i].stop = hp7908_stop;
     hpib_bus[i++].ctrl = (VOID *) (&Chipset.Hp7908_1);
     Chipset.Hp7908_1.hpibaddr = 4;
-    Chipset.Hp7908_1.type[0] = Chipset.Hpib74x - 1;
+    Chipset.Hp7908_1.type[0] = Chipset.Hpib704 - 1;
     break;
   }
  
@@ -313,7 +314,7 @@ BOOL hpib_send_d(BYTE d) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : send d (%d):%02X\n"), Chipset.Cpu.PC, d, Chipset.Hpib.s_eoi);
+    k = wsprintf(buffer,"%06X: HPIB : send d (%d):%02X\n"), Chipset.Cpu.PC, d, Chipset.Hpib.s_eoi);
     OutputDebugString(buffer);
 #if defined DEBUG_HIGH
   }
@@ -354,7 +355,7 @@ BOOL hpib_send_c(BYTE c) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : send c :%02X (%s)\n"), Chipset.Cpu.PC, c, HPIB_CMD[c & 0x7F]);
+    k = wsprintf(buffer,"%06X: HPIB : send c :%02X (%s)\n"), Chipset.Cpu.PC, c, HPIB_CMD[c & 0x7F]);
     OutputDebugString(buffer);
 #if defined DEBUG_HIGH
   }
@@ -378,7 +379,7 @@ BOOL hpib_init_bus(VOID) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : init bus\n"), Chipset.Cpu.PC);
+    k = wsprintf(buffer,"%06X: HPIB : init bus\n"), Chipset.Cpu.PC);
     OutputDebugString(buffer);
 #if defined DEBUG_HIGH
   }
@@ -403,7 +404,7 @@ BOOL hpib_stop_bus(VOID) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : stop bus\n"), Chipset.Cpu.PC);
+    k = wsprintf(buffer,"%06X: HPIB : stop bus\n", Chipset.Cpu.PC);
     OutputDebugString(buffer);
 #if defined DEBUG_HIGH
   }
@@ -434,7 +435,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : %02X->%04X\n"), Chipset.Cpu.PC, *(a-1), d);
+    k = wsprintf(buffer,"%06X: HPIB : %02X->%04X\n"), Chipset.Cpu.PC, *(a-1), d);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
   }
@@ -456,7 +457,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB DMAen <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB DMAen <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -470,7 +471,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Interrupt mask 0 <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Interrupt mask 0 <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -483,7 +484,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Interrupt mask 1 <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Interrupt mask 1 <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -505,7 +506,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Address <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Address <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -518,7 +519,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Serial Poll <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Serial Poll <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -531,7 +532,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Parallel Poll <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Parallel Poll <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -544,7 +545,7 @@ BYTE Write_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Data out <- %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Data out <- %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -594,7 +595,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
   if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-    k = wsprintf(buffer,_T("%06X: HPIB : read %04X\n"), Chipset.Cpu.PC, d);
+    k = wsprintf(buffer,"%06X: HPIB : read %04X\n"), Chipset.Cpu.PC, d);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
   }
@@ -617,7 +618,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Interrupt status 0 = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Interrupt status 0 = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -631,7 +632,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Interrupt status 1 = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Interrupt status 1 = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -644,7 +645,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("%06X: HPIB Address status = %02X\n"), Chipset.Cpu.PC, *a);
+      k = wsprintf(buffer,"%06X: HPIB Address status = %02X\n"), Chipset.Cpu.PC, *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -657,7 +658,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Bus status = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Bus status = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -674,7 +675,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Command pass thru = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Command pass thru = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -690,7 +691,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB Data in = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB Data in = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -704,7 +705,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB spec status 1 = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB spec status 1 = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -718,7 +719,7 @@ BYTE Read_HPIB(BYTE *a, WORD d, BYTE s) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("	    : HPIB spec status 5 = %02X\n"), *a);
+      k = wsprintf(buffer,"	    : HPIB spec status 5 = %02X\n"), *a);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -787,7 +788,7 @@ VOID DoHPIB(VOID) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("      : HPIB auxiliary : %02X = %s\n"), Chipset.Hpib.aux_cmd, HPIB_9114[((sc) ? 32 : 0) + (Chipset.Hpib.aux_cmd & 0x1F)]);
+      k = wsprintf(buffer,"      : HPIB auxiliary : %02X = %s\n"), Chipset.Hpib.aux_cmd, HPIB_9114[((sc) ? 32 : 0) + (Chipset.Hpib.aux_cmd & 0x1F)]);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -797,7 +798,7 @@ VOID DoHPIB(VOID) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+      k = wsprintf(buffer,"      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -923,7 +924,7 @@ VOID DoHPIB(VOID) {
 #if defined DEBUG_HIGH
       if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-	k = wsprintf(buffer,_T("	: HPIB auxiliary : tca : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+	k = wsprintf(buffer,"	: HPIB auxiliary : tca : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
       }
@@ -943,7 +944,7 @@ VOID DoHPIB(VOID) {
 #if defined DEBUG_HIGH
       if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-	k = wsprintf(buffer,_T("	: HPIB auxiliary : tcs : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
+	k = wsprintf(buffer,"	: HPIB auxiliary : tcs : dav %d nrfd %d ndac %d bi %d\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi);
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
       }
@@ -1014,7 +1015,7 @@ VOID DoHPIB(VOID) {
 #if defined DEBUG_HIGH
     if ((Chipset.Cpu.PC > 0xC000) && bDebugOn) {
 #endif
-      k = wsprintf(buffer,_T("      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d data %02X\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi, Chipset.Hpib.data_in);
+      k = wsprintf(buffer,"      : HPIB auxiliary : --- : dav %d nrfd %d ndac %d bi %d data %02X\n"), Chipset.Hpib.l_dav, Chipset.Hpib.l_nrfd, Chipset.Hpib.l_ndac, Chipset.Hpib.bi, Chipset.Hpib.data_in);
       OutputDebugString(buffer); buffer[0] = 0x00;
 #if defined DEBUG_HIGH
     }
@@ -1042,15 +1043,15 @@ VOID DoHPIB(VOID) {
 
   if (Chipset.Hpib.a_rpp) {
     Chipset.Hpib.par_poll_resp = 0;
-    if (Chipset.Hpib70x == 1) {
+    if (Chipset.Hpib700 == 1) {
       if (Chipset.Hp9121.ppol_e) 
 	Chipset.Hpib.par_poll_resp |= 0x80;
     }
-    if (Chipset.Hpib72x == 3) {
+    if (Chipset.Hpib702 == 3) {
       if (Chipset.Hp9122.ppol_e) 
 	Chipset.Hpib.par_poll_resp |= 0x20;
     }
-    switch (Chipset.Hpib73x) {
+    switch (Chipset.Hpib703) {
     case 1:
     case 2:
     case 3:
@@ -1060,7 +1061,7 @@ VOID DoHPIB(VOID) {
     default:
       break;
     }
-    switch (Chipset.Hpib74x) {
+    switch (Chipset.Hpib704) {
     case 1:
     case 2:
     case 3:

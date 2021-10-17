@@ -12,7 +12,7 @@
 #include "hp9816emu.h"
 #include "mops.h"						// I/O definitions
 
-#define DEBUG_98620						// debug flag
+//#define DEBUG_98620						// debug flag
 
 #if defined DEBUG_98620
 static	TCHAR buffer[256];
@@ -21,7 +21,7 @@ static	int k;
 
 // hp98626 controller variables
 
-static WORD st98620 = 0;					// state of hp98620 controller
+//static WORD st98620 = 0;					// state of hp98620 controller
 
 //################
 //#

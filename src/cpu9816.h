@@ -111,7 +111,7 @@ typedef struct {
 } KEYBOARD;
 
 //
-// display structure data for 9836A and 9816A
+// display structure data for 9816A
 //
 typedef struct {
   BYTE	graph_on;		// graph plane visible ?
@@ -131,14 +131,14 @@ typedef struct {
   WORD	graph_height;		// graph height in native pixels
   WORD	graph_bytes;		// size of the graph memory
   WORD	graph_visible;		// address of last visible graph byte
-  ULONG default_pixel;          // default foreground pixel value
+  DWORD default_pixel;          // default foreground pixel value
   DWORD	cycles;			// cycle counter for vsync
   BYTE	whole;			// not used
   BYTE	reg;			// adressed mc6845 reg
   BYTE	regs[16];		// mc6845 regs
   BYTE	cursor_t;		// top of cursor
   BYTE	cursor_b;		// bottom of cursor
-  BYTE	cursor_h;		// heigh of cursor
+  BYTE	cursor_h;		// height of cursor
   BYTE	cursor_blink;		// 0xFF:off, 0x20:1/32, 0x10:1/16, 0x00:on
   WORD	cursor_new;		// new cursor address
   WORD	cursor;			// actual cursor address
@@ -147,16 +147,8 @@ typedef struct {
   BYTE	cnt;			// vsync counter
   BYTE	cursor_last;		// last cursor state ...
   BYTE	alpha[4096];		// 4 KB of alpha dual port mem max 
-  BYTE	graph[32768];		// 32 KB of graph dual port mem max
-} DISPLAY16;
-
-//
-// common display structure 
-//
-typedef struct {
-  BYTE	nothing;		// nothing actually 
+  BYTE	graph[32768];		// 32KB of graph dual port mem max
 } DISPLAY;
-
 
 //
 // internal HPIB controller with TI9914A
@@ -551,20 +543,19 @@ typedef struct {
   BYTE	  switch1;	// motherboard switches bank 1
   BYTE	  switch2;	// motherboard switches bank 2
 
-  DISPLAY   Display;	// common display subsystem
-  DISPLAY16 Display16;	// 9816, 9836 display subsystem
+  DISPLAY Display;	// 9816 display subsystem
 
   KEYBOARD  Keyboard;	// one keyboard
 
   HPIB	 Hpib;		// internal system controller HPIB
-  BYTE	 Hpib70x;	// type for 70x unit (9121, 9895,9134,9122)
-  BYTE	 Hpib71x;	// type for 71x unit here only hp 2225 printer if not null
-  BYTE	 Hpib72x;	// type for 72x unit (9121, 9895,9134,9122)
-  BYTE	 Hpib73x;	// type for 73x unit (7908, 7911, 7912)
-  BYTE	 Hpib74x;	// type for 74x unit (7908, 7911, 7912)
+  BYTE	 Hpib700;	// type for 700 unit (9121)
+  BYTE	 Hpib701;	// type for 701 unit here only hp 2225 printer if not null
+  BYTE	 Hpib702;	// type for 702 unit (9122)
+  BYTE	 Hpib703;	// type for 703 unit (7908, 7911, 7912)
+  BYTE	 Hpib704;	// type for 704 unit (7908, 7911, 7912)
 
-  HPSS80 Hp9122;	// HPIB external floppy 9122 address 0
-  HP9121 Hp9121;	// HPIB external floppy 9121 address 2
+  HP9121 Hp9121;	// HPIB external floppy 9121 address 0
+  HPSS80 Hp9122;	// HPIB external floppy 9122 address 2
   HPSS80 Hp7908_0;	// HPIB external hard disk address 3
   HPSS80 Hp7908_1;	// HPIB external hard disk address 4
 
@@ -574,5 +565,5 @@ typedef struct {
   HP98635 Nat;		// national 16081 floating point card
 
   HP98626 Serial;	// internal serial for HP9816 (dummy one, only regs)
-
+  BYTE    Filler[648];  // Padding to 64KB
 } SYSTEM;
