@@ -1,6 +1,8 @@
 # hp9816emu an HP9816 Emulator for Linux
 
-This is an emulator for the HP9816 desktop workstation that was based on an 8MHz Motorola 68000 processor.
+This is an emulator for the HP9816 desktop workstation that was based on an 8MHz Motorola 68000 processor. It was released in 1982 and was the first affordable computational workstation with three progamming environments: Basic, HPL and Pascal.
+
+![hp9816(9816.jpg)
 
 The code was adapted from Olivier de Smet's 98x6 emulator for windows. See his 
  [Website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6).
