@@ -91,6 +91,9 @@ type the two characters corresponding to the OS you want to boot:
  1Z for Basic
 ```
 
+![hp9816emu screenshot](hp9816emu.jpg)
+
+
 ####  System Image Files
 
 It is possible to save the current running system in a system image file.
