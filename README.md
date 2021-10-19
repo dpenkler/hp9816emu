@@ -129,7 +129,7 @@ image file has been loaded the image file "system.img" is used.
 Make sure you do not have anything you want to keep in "system.img"
 when using the "Auto save" features.
 
-The Phosphor setting changes the colour of the screen.
+The Phosphor setting changes the colour of the screen. Choices are "White", "Green" and "Amber".
 
 To hide the Settings menu just click on the **OK** button.
 
