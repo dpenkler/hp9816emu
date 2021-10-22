@@ -86,7 +86,7 @@ Display          *dpy;                 /* the display */
 static GC         dispGC;
 static XGCValues  gcvalues;
 
-#define LARGE_FONT "-adobe-helvetica-bold-r-normal-*-*-100-*-*-*-*-*-*"
+#define LARGE_FONT "-adobe-helvetica-bold-r-normal--14-100-100-100-*-*-*-*"
 
 void emuFlush() {
   XSync(dpy,0);
@@ -441,39 +441,34 @@ static void cancelCB(EZ_Widget *widget, void *data) {
 
 void emuInfoMessage(char *str) {
 
-  EZ_Widget  *toplevel, *frame,  *quit;	      
+  EZ_Widget  *toplevel,  *quit;	      
 
   toplevel = EZ_CreateWidget(EZ_WIDGET_FRAME,   NULL,
 			     EZ_LABEL_STRING,   " ",
-			     EZ_TEXT_LINE_LENGTH, 30,
-			     EZ_JUSTIFICATION,    EZ_CENTER,
 			     EZ_TRANSIENT,       EZ_TRUE,
-			     EZ_IPADY,           10,
+			     EZ_BORDER_WIDTH,    0,
 			     EZ_ORIENTATION,     EZ_VERTICAL,
 			     EZ_FILL_MODE,       EZ_FILL_BOTH,
 			     NULL);
 
   EZ_CreateWidget(EZ_WIDGET_LABEL,    toplevel,
-			     EZ_LABEL_STRING,    str,
-			     EZ_TEXT_LINE_LENGTH, 60,
-			     EZ_JUSTIFICATION,    EZ_CENTER,
-			     EZ_FOREGROUND,         "red",
-			     EZ_LABEL_SHADOW,       1,1,
-			     EZ_FONT_NAME,         LARGE_FONT,
-			     NULL);
+		  EZ_LABEL_STRING,    str,
+		  EZ_TEXT_LINE_LENGTH, 120,
+		  EZ_JUSTIFICATION,    EZ_LEFT,
+		  EZ_FOREGROUND,       "red",
+		  EZ_FONT_NAME,         LARGE_FONT,
+		  NULL);
   
-  frame =    EZ_CreateWidget(EZ_WIDGET_FRAME,   toplevel,
-			     EZ_HEIGHT,         0,
-			     NULL);
   
-
-  quit =     EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON, frame,
+  quit =     EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON, toplevel,
+			     EZ_WIDTH,          36,
 			     EZ_LABEL_STRING,   "OK",
 			     EZ_UNDERLINE,       0,
 			     EZ_CALLBACK,        cancelCB, toplevel,
 			     NULL );
 
-  EZ_DisplayWidgetUnderPointer(toplevel, -10, -10);
+  emuSetWidgetPosition(workArea,toplevel,-700,-400);
+  EZ_DisplayWidget(toplevel);
   EZ_SetGrab(toplevel);
   EZ_SetFocusTo(quit);
 }

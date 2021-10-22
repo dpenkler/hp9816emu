@@ -1508,9 +1508,11 @@ BOOL hp7908_load(HPSS80 *ctrl, BYTE unit, LPCTSTR szFilename) {
   INT   hDiskFile = -1;
   DWORD dwFileSize;
   struct stat rs;
+  char buf[1024];
   hDiskFile = open(szFilename,O_EXCL | O_RDWR);
   if (hDiskFile < 0) 	{
-    perror("7908 image ");
+    snprintf(buf,1023,"hp7908 load disk image: \"%s\" ",szFilename);
+    perror(buf);
     hDiskFile = -1;
     return FALSE;
   }
@@ -1592,13 +1594,23 @@ BOOL hp7908_widle(HPSS80 *ctrl) {
 //
 VOID hp7908_reset(VOID *controler) {
   HPSS80 *ctrl = (HPSS80 *) controler;
+  char buf[1024];
   BYTE i;
 
   i = 0;
-  if (ctrl->name[i][0] != 0x00) {
-    hp7908_load(ctrl, i, ctrl->name[i]);
-  } else emuUpdateButton(ctrl->hpibaddr, i, NULL);
-
+  if (ctrl->name[i][0] == 0x00 || !hp7908_load(ctrl, i, ctrl->name[i])) {
+      ctrl->hdisk[0] = -1;
+      ctrl->disk[0] = NULL;
+      if (ctrl->name[i][0]) {
+	snprintf(buf,1023,"hp7908: Failed to load disk image: \"%s\"",ctrl->name[0]);
+	emuInfoMessage(buf);
+	ctrl->name[i][0] = 0x00;
+      }
+      emuUpdateButton(ctrl->hpibaddr, i, "");
+  } else {
+    emuUpdateButton(ctrl->hpibaddr, i, NULL);
+  }
+  
   ctrl->head[i] = 0;
   ctrl->cylinder[i] = 0;
   ctrl->sector[i] = 0;
