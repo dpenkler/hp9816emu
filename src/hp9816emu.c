@@ -497,8 +497,11 @@ void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
   EZ_ConfigureWidget(volumeLabels[volId],EZ_FOREGROUND, col, EZ_LABEL_STRING, lifVolume, 0);
 }
 
-void emuUpdateDisk(int diskNo, char * name) {
-  //  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
+void emuUpdateDisk(int hpibadd, char * name) {
+  int diskNo = 0;
+  if (hpibadd>0) diskNo = hpibadd-1;
+  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
+  EZ_ConfigureWidget(diskLabels[diskNo], EZ_LABEL_STRING, name, 0);
 }
 
 
@@ -646,6 +649,7 @@ static void setupSettingsMenu() {
 		  NULL);
 }
 
+
 //
 // ID_9122_LOAD
 //
@@ -760,6 +764,7 @@ static int on9121Eject(HP9121 *ctrl, BYTE byUnit) {
   return (0);
 }
 
+
 //
 // ID_7908_LOAD
 //
@@ -773,8 +778,9 @@ static int on7908Load(HPSS80 *ctrl, BYTE byUnit) {
     emuInfoMessage("The HP7908 is busy.");
     goto cancel;
   } 
-  hp7908_load(ctrl, byUnit, szBufferFilename);
-  updateWindowStatus();
+  if (hp7908_load(ctrl, byUnit, szBufferFilename)) {
+    updateWindowStatus();
+  }
  cancel:
   return 0;
 }
@@ -1333,7 +1339,7 @@ VOID updateWindowStatus(VOID)  {
     }
 
     // HPIB 703 drive
-    if (Chipset.Hpib703 != 1) {
+    if (Chipset.Hpib703 == 0) {
       enableMenuItem(ID_H730_LOAD,  0);
       enableMenuItem(ID_H730_EJECT, 0);
     } else {
@@ -1341,7 +1347,7 @@ VOID updateWindowStatus(VOID)  {
       enableMenuItem(ID_H730_EJECT, (Chipset.Hp7908_0.disk[0] != NULL));
     }
     // HPIB 704 drive
-    if (Chipset.Hpib704 != 1) {
+    if (Chipset.Hpib704 == 0) {
       enableMenuItem(ID_H740_LOAD,  0);
       enableMenuItem(ID_H740_EJECT, 0);
     } else {

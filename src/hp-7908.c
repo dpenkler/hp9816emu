@@ -24,7 +24,16 @@
 
 #define HP7908_ID1 0x02						// HPIB ID byte 1
 #define HP7908_ID2 0x00						// HPIB ID byte 2
+#define HP7911_ID1 0x02						// HPIB ID byte 1
+#define HP7911_ID2 0x04						// HPIB ID byte 2
+#define HP7912_ID1 0x02						// HPIB ID byte 1
+#define HP7912_ID2 0x08						// HPIB ID byte 2
 
+BYTE drive_id[3][2] = {
+  {HP7908_ID1, HP7908_ID2},
+  {HP7911_ID1, HP7911_ID2},
+  {HP7912_ID1, HP7912_ID2}};
+  
 //#define DEBUG_HP7908						// debug flag
 
 #if defined DEBUG_HP7908
@@ -38,6 +47,7 @@ static int k;
 // size of disks
 //static DWORD disk_size[] = {16576000, 28114944, 65601536};
 static DWORD disk_sectors[] = {64750, 109824, 256256};
+static char *CS80Names[3] = {"7908","7911","7912"};
 
 //################
 //#
@@ -284,11 +294,12 @@ VOID DoHp7908(HPSS80 *ctrl) {
     ctrl->count--;
     break;
   case 102:
-    if (h_push((BYTE) (HP7908_ID1), 0))	// even if talk not enable .... (in fact talk enable on 31 (secondary shadow address of all amigo device)
+    if (h_push((BYTE) (drive_id[ctrl->type[0]][0]), 0))	// even if talk not enable .... (in fact talk enable on 31 (secondary shadow address of all amigo device)
       ctrl->stss80++;	
     break;
   case 103:
-    if (h_push((BYTE) (HP7908_ID2), 1))		// with EOI
+    //    fprintf(stderr,"7908 at %d pushing id %d\n",ctrl->hpibaddr, drive_id[ctrl->type[ctrl->unit]][1]);
+    if (h_push((BYTE) (drive_id[ctrl->type[0]][1]), 1))	// with EOI
       ctrl->stss80 = 0;
     break;
 
@@ -1520,20 +1531,20 @@ BOOL hp7908_load(HPSS80 *ctrl, BYTE unit, LPCTSTR szFilename) {
   dwFileSize = rs.st_size;
   fprintf(stderr,"Opened %s for 7908 on unit %d fd=%d\n",szFilename,unit,hDiskFile);
   
-  if ((dwFileSize == 16576000L) && (ctrl->type[0] == 0)) {	// 7908 15 Mb
-    //ctrl->type[unit] = 0;
+  if (dwFileSize == 16576000L) {	// 7908 15 Mb
+    ctrl->type[unit] = 0;
     ctrl->nbsector[unit] = 256;
     ctrl->nsectors[unit] = 35;
     ctrl->ncylinders[unit] = 370;
     ctrl->nheads[unit] = 5;
-  } else if ((dwFileSize == 28114944) && (ctrl->type[0] == 1)) {// 7911 30 Mb
-    //ctrl->type[unit] = 1;
+  } else if (dwFileSize == 28114944) {// 7911 30 Mb
+    ctrl->type[unit] = 1;
     ctrl->nbsector[unit] = 256;
     ctrl->nsectors[unit] = 64;
     ctrl->ncylinders[unit] = 572;
     ctrl->nheads[unit] = 3;
-  } else if ((dwFileSize == 65601536) && (ctrl->type[0] == 2)) {// 7912 60 Mb
-    //ctrl->type[unit] = 2;
+  } else if (dwFileSize == 65601536) {// 7912 60 Mb
+    ctrl->type[unit] = 2;
     ctrl->nbsector[unit] = 256;
     ctrl->nsectors[unit] = 64;
     ctrl->ncylinders[unit] = 572;
@@ -1554,7 +1565,9 @@ BOOL hp7908_load(HPSS80 *ctrl, BYTE unit, LPCTSTR szFilename) {
 
   ctrl->lifname[unit][0] = 0x00;
   emuUpdateButton(ctrl->hpibaddr, unit,  ctrl->lifname[unit]);
-  
+  emuUpdateDisk(ctrl->hpibaddr, CS80Names[ctrl->type[unit]]);
+  if (ctrl->hpibaddr==3) Chipset.Hpib703 = ctrl->type[unit]+1;
+  if (ctrl->hpibaddr==4) Chipset.Hpib704 = ctrl->type[unit]+1;
   return TRUE;
 }
 
@@ -1572,13 +1585,17 @@ BOOL hp7908_eject(HPSS80 *ctrl, BYTE unit) {
 	if (ctrl->disk[unit] == NULL)
 		return FALSE;
 	close(ctrl->hdisk[unit]);
-	ctrl->name[unit][0] = 0x00;
+	ctrl->name[unit][0] = 0x00; 
 	ctrl->disk[unit] = NULL;
 
 //	ctrl->err[unit].power_fail = 1;					// disk changed
 
 	ctrl->lifname[unit][0] = 0x00;
 	emuUpdateButton(ctrl->hpibaddr, unit, NULL);
+	if (ctrl->hpibaddr==3) Chipset.Hpib703 = 1;
+	if (ctrl->hpibaddr==4) Chipset.Hpib704 = 1;
+	ctrl->type[unit] = 0;  // switch back to 7908
+	emuUpdateDisk(ctrl->hpibaddr, CS80Names[ctrl->type[unit]]);
 
 	return TRUE;
 }

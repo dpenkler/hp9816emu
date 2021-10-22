@@ -14,7 +14,7 @@
 #include "rom.h"
 
 
-//#define DEBUG_FILES
+#define DEBUG_FILES
 #if defined(DEBUG_FILES)
 static TCHAR buffer[256];
 static int k;

@@ -157,7 +157,7 @@ VOID hpib_names(VOID) {
   
   Chipset.annun &= ~(1 << 4);
   if (Chipset.Hpib702 == 3) {
-    emuUpdateDisk(1, hpib_name[2]);
+    emuUpdateDisk(2, hpib_name[2]);
     if (Chipset.Hp9122.disk[0])
       emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, Chipset.Hp9122.lifname[0]);
     else
@@ -168,14 +168,14 @@ VOID hpib_names(VOID) {
       emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, NULL);
     Chipset.annun |= (1 << 4);
   } else {
-    emuUpdateDisk(1, hpib_name[0]);
+    emuUpdateDisk(2, hpib_name[0]);
     emuUpdateButton(Chipset.Hp9122.hpibaddr, 0, NULL);
     emuUpdateButton(Chipset.Hp9122.hpibaddr, 1, NULL);
   }
   Chipset.annun &= ~(1 << 7);
   switch (Chipset.Hpib703) {
   case 1:
-    emuUpdateDisk(2, hpib_name[3]);		// 7908
+    emuUpdateDisk(3, hpib_name[3]);		// 7908
     if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
@@ -183,7 +183,7 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 7);
     break;
   case 2:
-    emuUpdateDisk(2, hpib_name[4]);		// 7911
+    emuUpdateDisk(3, hpib_name[4]);		// 7911
     if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
@@ -191,7 +191,7 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 7);
     break;
   case 3:
-    emuUpdateDisk(2, hpib_name[5]);		// 7912
+    emuUpdateDisk(3, hpib_name[5]);		// 7912
     if (Chipset.Hp7908_0.disk[0])
       emuUpdateButton(Chipset.Hp7908_0.hpibaddr, 0, Chipset.Hp7908_0.lifname[0]);
     else
@@ -199,13 +199,13 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 7);
     break;
   default:
-    emuUpdateDisk(2, hpib_name[0]);		// none 
+    emuUpdateDisk(3, hpib_name[0]);		// none 
   }
   
   Chipset.annun &= ~(1 << 9);
   switch (Chipset.Hpib704) {
   case 1: 
-    emuUpdateDisk(3, hpib_name[3]);		// 7908
+    emuUpdateDisk(4, hpib_name[3]);		// 7908
     if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
@@ -213,7 +213,7 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 9);
     break;
   case 2:
-    emuUpdateDisk(3, hpib_name[4]);		// 7911
+    emuUpdateDisk(4, hpib_name[4]);		// 7911
     if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
@@ -221,7 +221,7 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 9);
     break;
   case 3:
-    emuUpdateDisk(3, hpib_name[5]);		// 7912
+    emuUpdateDisk(4, hpib_name[5]);		// 7912
     if (Chipset.Hp7908_1.disk[0])
       emuUpdateButton(Chipset.Hp7908_1.hpibaddr, 0, Chipset.Hp7908_1.lifname[0]);
     else
@@ -229,7 +229,7 @@ VOID hpib_names(VOID) {
     Chipset.annun |= (1 << 9);
     break;
   default:
-    emuUpdateDisk(3, hpib_name[0]);		// none 
+    emuUpdateDisk(4, hpib_name[0]);		// none 
   }
 }
 
