@@ -14,7 +14,7 @@
 #include "rom.h"
 
 
-#define DEBUG_FILES
+//#define DEBUG_FILES
 #if defined(DEBUG_FILES)
 static TCHAR buffer[256];
 static int k;
@@ -58,7 +58,7 @@ static BOOL newSettingsProc() {
     
   hpib_init();		// initialize it
   
-  setSpeed(wRealSpeed);	// set speed
+  setSpeed(bSpeed);	// set speed
   
   Chipset.keeptime = bKeeptime;
   
@@ -208,7 +208,7 @@ BOOL openSystemImage(LPCTSTR szFilename) {
 
   Init_Keyboard();
 
-  setSpeed(wRealSpeed);	// set speed
+  setSpeed(bSpeed);	// set speed
   
   strcpy(szCurrentFilename, szFilename);
   hCurrentFile = hFile;

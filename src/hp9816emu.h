@@ -22,6 +22,7 @@ extern int      bFPU;      // hp98635 floating point card enabled
 extern int      bPhosphor;
 extern int      bRamInd;   // Ram size index
 extern int      memSizes[];
+extern int 	bSpeed;    // speed index
 extern volatile unsigned int cpuCycles;
 extern Window	hWnd;
 extern Display *dpy;
@@ -87,7 +88,6 @@ extern VOID	doDisplayTimers(VOID);
 extern BOOL	bInterrupt;
 extern UINT	nState;
 extern UINT	nNextState;
-extern WORD	wRealSpeed;
 //extern BOOL	bSound;			// no sound yet
 extern long  	dwMaxTimers;
 extern WORD	wCyclesTimer;

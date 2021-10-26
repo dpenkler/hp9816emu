@@ -31,10 +31,11 @@ BOOL        bAutoSaveOnExit = FALSE;
 BOOL        bDisplayLog = TRUE;
 int         bPhosphor   = 1;   /* white=0, green=1, amber=2 */
 int         bFPU = TRUE;
-int         bRamInd = 1; // 512K
+int         bRamInd = 2; // default initial ram size 1024K
 #define     MEM_SZ_CNT 6
 // Memory sizes in KB last entry 8MB-512KB
 int         memSizes[MEM_SZ_CNT] = {256, 512, 1024, 2048, 4096, 7680}; 
+int         bSpeed = 1; // speed index  max=0, 8MHz=1, 16Mhz=2, 24Mhz=3, 32Mhz=4, 40Mhz=5
 volatile unsigned int cpuCycles;
 static char memDisp[64];
 int         bKeeptime = TRUE;
@@ -395,6 +396,7 @@ void settingsCB(EZ_Widget *w, void *data) {
 }
 
 void speedMenuCB(EZ_Widget *w, void *data) {
+  EZ_SetRadioButtonGroupVariableValue(w, 3);
   EZ_DoPopup(speedMenu, EZ_BOTTOM_RIGHT);
 }
 
@@ -402,7 +404,7 @@ void speedCB(EZ_Widget *w, void *data) {
   int speed = EZ_GetRadioButtonGroupVariableValue(w);
   // fprintf(stderr,"speedCB %d\n",speed);
   setSpeed(speed);
-  wRealSpeed = speed;
+  bSpeed = speed;
 }
 
 void siMenuCB(EZ_Widget *w, void *data) {
@@ -514,11 +516,11 @@ void emuUpdateLed(int id, int status) {
   }
 }
 
-static void setupSpeedMenu() {
-
-  speedMenu = EZ_CreateSimpleMenu("8Mhz %r[2,1,1] %f|16MHz %r[2,2,1] %f|24Mhz%r[2,3,1]%f|"
-				  "32Mhz %r[2,4,1] %f|40MHz %r[2,5,1] %f|Max %r[2,0,1]%f",
-				  speedCB, NULL,  speedCB, NULL, speedCB, NULL, speedCB, NULL,
+static void setupSpeedMenu(int speed) {
+  char buf[256];
+  snprintf(buf,255,"8hz %%r[2,1,%1$d] %%f|16MHz %%r[2,2,%1$d] %%f|24Mhz%%r[2,3,%1$d]%%f|"
+	   "32Mhz %%r[2,4,%1$d] %%f|40MHz %%r[2,5,%1$d] %%f|Max %%r[2,0,%1$d]%%f",speed);
+  speedMenu = EZ_CreateSimpleMenu(buf, speedCB, NULL,  speedCB, NULL, speedCB, NULL, speedCB, NULL,
 				  speedCB, NULL, speedCB, NULL);
 
   EZ_ConfigureWidget(speedMenu, EZ_MENU_TEAR_OFF, 0, NULL);
@@ -533,6 +535,7 @@ static char *selectMem(int last, int current, void *data) {
 }
 
 static void setupSettingsMenu() {
+  char buf[256];
   EZ_Widget *sysFrame, *memFrame,*fpuFrame, *genFrame, *btnFrame;
 
   settingsMenu = EZ_CreateWidget(EZ_WIDGET_FRAME,         NULL,
@@ -554,8 +557,10 @@ static void setupSettingsMenu() {
 				 EZ_SIDE,                 EZ_LEFT,
 				 NULL);
 
+  snprintf(buf,255,"%d KB",memSizes[bRamInd]);
+
   memSel       = EZ_CreateWidget(EZ_WIDGET_SPIN_BUTTON,   memFrame,
-				 EZ_SPIN_VALUE,           bRamInd, "512 KB",
+				 EZ_SPIN_VALUE,           bRamInd, buf,
 				 EZ_SPIN_FUNCTION,        selectMem, NULL,
 				 NULL);
 
@@ -1439,7 +1444,7 @@ int main(int ac, char **av) {
 
   setupSettingsMenu();
   
-  setupSpeedMenu();
+  setupSpeedMenu(bSpeed);
   
   setupMenuBar(mbar);
 

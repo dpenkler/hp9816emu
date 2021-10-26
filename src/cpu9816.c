@@ -43,7 +43,6 @@ static long dwHp1000;			// for 1000Hz timer
 BOOL    bInterrupt = FALSE;		// no demand for interrupt
 UINT    nState     = SM_INVALID;	// actual system state
 UINT    nNextState = SM_RUN;		// next initial system state
-WORD    wRealSpeed = 1;			// real speed emulation x1
 //BOOL    bSound = FALSE;		// sound emulation activated ?
 
 SYSTEM Chipset;
