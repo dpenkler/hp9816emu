@@ -54,8 +54,8 @@ The following HPIB peripherals are preconfigured on select code 7 and cannot be 
 - 701: printer - prints to file on host local file system:
                printer-xxx.txt
 - 702: hp9122 ss/80 floppy disk drive units 0 and 1
-- 703: hp7908 cs/80 hard drive unit 0
-- 704: hp7908 cs/80 hard drive unit 0
+- 703: hp7908/7911/7912 cs/80 hard drive unit 0
+- 704: hp7908/7911/7912 cs/80 hard drive unit 0
 
 When a **Unit N** label is clicked a menu to manage the corresponding disk image is posted.
 
@@ -69,17 +69,24 @@ lengthy memory test. To associate a disk image with a drive click on
 the drive icon **Unit N** corresponding to the drive model you have an image
 for and load the appropriate disk image. Disk image files have the
 .hpi suffix and can be created using Ansgar Kuekes'
-[hpdir](https://hp9845.net/9845/projects/hpdir/) utility.
+[hpdir](https://hp9845.net/9845/projects/hpdir/) utility. For example to create a disk image for a 7911 drive:
+
+```
+$# hpdir -initialize -lif -<drive-type> -n <lif-label> <image-file-name>
+$ hpdir -initialize -lif -7911 -n 7911V1 7911V1.hpi
+```
 
 The [HP Museum](http://hpmuseum.net/exhibit.php?swc=6) has lots of
 images in TD0 format. See Ansgar's
 [Teledisk-to-hpi](https://www.hp9845.net/9845/projects/utilities/#ima2hpi)
 utilities to convert them to hpi format.
 
-A sample disk image file for a 7908 drive is provided in the repo: dmpas.hpi
-You can load it by clicking on the **Unit 0** button on the right hand panel.
-It contains a number of operating systems.
-By default it will boot into Pascal 1P SYSTEM_P
+A sample disk image file for a 7908 drive is provided in the repo:
+dmpas.hpi You can load it by clicking on the 7908 **Unit 0** button on
+the right hand panel.  It contains a number of operating systems.  By
+default it will boot into Pascal 1P SYSTEM_P. Note the dmpas.hpi disk
+image has been configured with 4 soft partitions. hpdir can only
+access the first partition.
 
 To boot another OS press any key while the boot Rom is running the
 memory test.  When you see "SEARCHING FOR A SYSTEM (ENTER To Pause)"
