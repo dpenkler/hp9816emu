@@ -895,7 +895,7 @@ static int saveChanges(BOOL bAuto) {
   if (!bAuto) return 1;
   if (!imageFile[0]) {
     strcpy(imageFile,defaultImagefile);
-    fprintf(stderr, "Saving image in default file: %s\n",imageFile);
+    fprintf(stderr, "Using default sytem image file: %s\n",imageFile);
   }
   fprintf(stderr, "Saving system image in: %s\n",imageFile);
   if (saveSystemImageAs(imageFile)) {
@@ -1029,7 +1029,7 @@ static int onFileClose(VOID) {
 
   switchToState(SM_INVALID);
   if (saveChanges(bAutoSave)) {
-    setWindowTitle(defaultImagefile);
+    setWindowTitle("Untitled");
   } else {
     if (bErrno) {
       snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
