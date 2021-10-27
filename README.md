@@ -126,23 +126,21 @@ There are 5 general settings: "Default filename for system image",
 "Set system time", "Auto save system image", "Auto save on exit" and
 "Phosphor".  The general settings take effect immediately.
 
-The "Default filename for system image" is used when no filename is associated with the current
-system image and when:
+The "Default filename for system image" is initially set to "system.img" and can be changed by entering another filename in the available entry. 
+This filename is used when no filename is associated with the current system image when saving the system image:
 * on **Quit** and "Auto save on exit" is enabled
 * on **New** or **Load** and "Auto save" is enabled
-By default it is set to "system.img" and can be changed by entering another filename in the available entry.
+The current filename associated with the system image is reflected in the emulator window title.
 
 Set system time when enabled will automatically set the system time for Pascal and Basic OS's
 
 Auto save system image when enabled will automatically save the
-current image when loading a new image or initialising a new image. If
-no image file has been loaded the image file "system.img" is used.
+current image when loading a new image with **Load** or initialising a new image with **New**. If
 
-Auto save on exit when enabled will save the image on Quit. If no
-image file has been loaded the image file "system.img" is used.
+Auto save on exit when enabled will save the image on **Quit**. If no
+image file has been loaded the default filename for the system image is used.
 
-Make sure you do not have anything you want to keep in "system.img"
-when using the "Auto save" features.
+Make sure you do not have anything you want to keep in the efault filename for system image "system.img" if you don't change it
 
 The Phosphor setting changes the colour of the screen. Choices are "White", "Green" and "Amber".
 
@@ -165,7 +163,7 @@ To hide the Speed menu without selecting a speed just click on the **Speed** but
 
 This menu's items are as follows:
 
-* **New** creates a clean system image and reboots the system.
+* **New** creates a clean system image and reboots the system. (Reflected by "New system imgage" in the window title).
 * **Load** an existing image and run it.
 * **Save** the running system in the existing image (Reflected in the window title).
 * **SaveAs** the running system in a file of your choice. If ok will be reflected in the window title.
@@ -188,7 +186,7 @@ This LED is on when the FPU is enabled in the current system image
 
 ### Quit button
 
-When pressed the emulator terminates. If the autosave on exit flag setting is enabled the current system image is saved . If the current system image was loaded from an existing image file that image file is updated otherwise it is saved into the default system image file "system.img".
+When pressed the emulator terminates. If the autosave on exit flag setting is enabled the current system image is saved . If the current system image was loaded from an existing image file that image file is updated otherwise it is saved into the default system image file.
 
 ## Right hand panel
 
