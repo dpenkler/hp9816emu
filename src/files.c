@@ -7,7 +7,7 @@
 //
 //   All stuff for files and system images, still some stuff from emu42
 //
-
+#include <errno.h>
 #include "common.h"
 #include "hp9816emu.h"
 #include "mops.h"
@@ -161,6 +161,7 @@ BOOL openSystemImage(LPCTSTR szFilename) {
   for (ctBytesCompared=0; ctBytesCompared<sizeof(pbyFileSignature); ctBytesCompared++) {
     if (pbyFileSignature[ctBytesCompared]!=pbySignature[ctBytesCompared]) {
       emuInfoMessage("This file is not a valid hp9816 configuration.");
+      bErrno = 0;
       goto restore;
     }
   }
@@ -176,7 +177,8 @@ BOOL openSystemImage(LPCTSTR szFilename) {
 
   Chipset.Ram = (LPBYTE)malloc(Chipset.RamSize);
   if (Chipset.Ram == NULL) {
-    fprintf(stderr,"RAM Memory Allocation Failure.");
+    emuInfoMessage("RAM Memory Allocation Failure");
+    bErrno = 0;
     goto restore;
   }
   
@@ -221,6 +223,7 @@ BOOL openSystemImage(LPCTSTR szFilename) {
 
  read_err:
   emuInfoMessage("This file must be truncated, and cannot be loaded.");
+  bErrno = 0;
  restore:
   if (hFile != -1) close(hFile);
   return FALSE;
@@ -243,7 +246,8 @@ BOOL saveSystemImage(VOID) {
   
   nFSize = sizeof(pbySignature);
   if (nFSize != write(hCurrentFile, pbySignature, sizeof(pbySignature))) {
-    emuInfoMessage("Could not write into file !");
+    fprintf(stderr,"Could not write into system image file !");
+    bErrno = errno;
     return FALSE;
   }
 
@@ -269,7 +273,8 @@ BOOL saveSystemImageAs(LPCTSTR szFilename) {
   }
   hFile = creat(szFilename, O_EXCL | 0640);
   if (hFile < 0) {	// error, couldn't create a new file
-    emuInfoMessage("This file must be currently used by another instance of hp9816emu.");
+    fprintf(stderr,"Can't create file %s\n", szFilename);
+    bErrno = errno;
     return FALSE;
   }
   strcpy(szCurrentFilename, szFilename);	// save new file name

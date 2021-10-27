@@ -41,6 +41,7 @@ static char memDisp[64];
 int         bKeeptime = TRUE;
 pthread_t   cpuThread = 0;
 Window      hWnd=0;
+int         bErrno;
 
 static int ret;
 static int onKey(int,unsigned int, int);
@@ -58,6 +59,7 @@ static EZ_Widget *seButton = NULL;     /* settings button          */
 static EZ_Widget *memSel;              /* memory size selector     */
 static EZ_Widget *fpuBtn;
 static EZ_Widget *timBtn;
+static EZ_Widget *siFile;
 static EZ_Widget *pBtnW, *pBtnG, *pBtnA;
 /* Menu bar */
 static EZ_Widget *mhzLed;
@@ -69,7 +71,9 @@ static EZ_Widget *speedMenu = NULL;    /* speed setting menu       */
 static EZ_Widget *siButton = NULL;     /* system immage button     */
 static EZ_Widget *siMenu   = NULL;     /* system immage menu       */
 static int        siMenuPosted = 0;    /* sys img menu posted flag */
-static char       imageFile[256];      /* image file name          */
+static char       imageFile[256];      /* current image file name  */
+static char defaultImagefile[256];     /* default image file name  */
+#define DEFAULT_SYSTEM_IMAGE "system.img"
 /* Run button */
 static EZ_Widget *runBtn;
 /* Disk type labels */
@@ -312,11 +316,17 @@ static void emuSetEvents(EZ_Widget *widget) {
 
 static void quitCB(EZ_Widget *w, void *d) {
   int retval;
+  char buf[1024];
   int mstate=nState;
   if (cpuThread) {
     switchToState(SM_INVALID); 
     if (!saveChanges(bAutoSaveOnExit)) {
-      emuInfoMessage("Unable to save system image, use saveAs");
+      if (bErrno) {
+	snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
+	emuInfoMessage(buf);
+	imageFile[0] = 0;
+	updateWindowStatus();
+      }
       switchToState(mstate);
       return;
     }
@@ -383,7 +393,8 @@ void okCB(EZ_Widget *widget, void *data) {
   int phos;
   EZ_Widget *parent = data;
   EZ_HideWidget(parent);
-  
+  strcpy(defaultImagefile, EZ_GetEntryString (siFile));
+  fprintf(stderr,"Default image file is %s\n",defaultImagefile);
   phos = EZ_GetRadioButtonGroupVariableValue(pBtnW);
   // fprintf(stderr,"Phosphor: %d  bP %d\n",phos ,bPhosphor);
   if (phos != bPhosphor) { 
@@ -541,7 +552,7 @@ static char *selectMem(int last, int current, void *data) {
 
 static void setupSettingsMenu() {
   char buf[256];
-  EZ_Widget *sysFrame, *memFrame,*fpuFrame, *genFrame, *btnFrame;
+  EZ_Widget *sysFrame, *memFrame,*fpuFrame, *genFrame, *btnFrame, *tmp;
 
   settingsMenu = EZ_CreateWidget(EZ_WIDGET_FRAME,         NULL,
 				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
@@ -590,7 +601,20 @@ static void setupSettingsMenu() {
 				 EZ_FILL_MODE,            EZ_FILL_BOTH,
 				 EZ_SIDE,                 EZ_CENTER,
 				 NULL);
+  tmp          = EZ_CreateWidget(EZ_WIDGET_FRAME,         genFrame,
+				 EZ_LABEL_STRING, "Default filename for system image",
+				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
+				 EZ_SIDE,                 EZ_LEFT,
+				 0);
 
+  strcpy(defaultImagefile,DEFAULT_SYSTEM_IMAGE);
+  
+  siFile       = EZ_CreateWidget(EZ_WIDGET_ENTRY,         tmp,
+				 EZ_BORDER_TYPE,          EZ_BORDER_SUNKEN,
+				 EZ_ENTRY_STRING,         defaultImagefile,
+				 0);
+
+  
   timBtn       = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  genFrame,
 				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
 				 EZ_LABEL_STRING,         "Set system time",
@@ -866,21 +890,19 @@ static void ejectCB(EZ_Widget *w, void *d) {
 }
 
 static int saveChanges(BOOL bAuto) {
-  char buf[1024];
+  bErrno = 0;
   if (nState==SM_RUN) fprintf(stderr,"saveChanges called with SM_RUN\n");
   if (!bAuto) return 1;
   if (!imageFile[0]) {
-    strcpy(imageFile,"system.img");
-    snprintf(buf, 512, "Saving image in default file: %s\n",imageFile);
-    emuInfoMessage(buf);
+    strcpy(imageFile,defaultImagefile);
+    fprintf(stderr, "Saving image in default file: %s\n",imageFile);
   }
   fprintf(stderr, "Saving system image in: %s\n",imageFile);
   if (saveSystemImageAs(imageFile)) {
     setWindowTitle(imageFile);
     return 1;
   } else {
-    emuInfoMessage("Failed to save image");
-    imageFile[0] = 0; // kill bad file name
+    fprintf(stderr,"Failed to save image in %s\n",imageFile);
     return 0;
   }
 }
@@ -897,8 +919,17 @@ static void loadSICB(EZ_Widget *w, void *d) {
 
 static void saveSICB(EZ_Widget *w, void *data) {
   int mstate=nState;
+  char buf[1024];
+  
   switchToState(SM_INVALID);
-  saveChanges(TRUE);
+  if (!saveChanges(TRUE)) {
+    if (bErrno) {
+      snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
+      emuInfoMessage(buf);
+      imageFile[0] = 0;
+      updateWindowStatus();
+    }
+  }
   switchToState(mstate);
   return;
 }
@@ -916,13 +947,21 @@ static void saveAsSICB(EZ_Widget *w, void *data) {
 
 static int onFileNew(VOID) {
   int mstate=nState;
-
+  char buf[1024];
+  
   switchToState(SM_INVALID);
-  if (!saveChanges(bAutoSave))  goto cancel;
+  if (!saveChanges(bAutoSave)) {
+    if (bErrno) {
+      snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
+      emuInfoMessage(buf);
+      imageFile[0] = 0;
+      updateWindowStatus();
+    }
+    goto cancel;
+  }
   if (newSystemImage()) setWindowTitle("New System Image");
   updateWindowStatus();
  cancel:
-  imageFile[0] = 0;
   switchToState(mstate);
   EZ_HideWidget(siMenu);
   siMenuPosted = 0;
@@ -931,13 +970,26 @@ static int onFileNew(VOID) {
 
 static int onFileOpen(VOID) { 
   int mstate=nState;
-  strcpy(imageFile,szBufferFilename);
-  fprintf(stderr,"onFileOpen: image %s; state %d\n",imageFile,mstate);
+  char buf[1024];
+  
   switchToState(SM_INVALID);
-  if (!saveChanges(bAutoSave)) goto cancel; 
+  if (!saveChanges(bAutoSave)) {
+    if (bErrno) {
+      snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
+      emuInfoMessage(buf);
+      imageFile[0] = 0;
+      updateWindowStatus();
+    }
+    goto cancel;
+  } 
   if (szBufferFilename[0] != 0) {
-    if (!openSystemImage(szBufferFilename)) emuInfoMessage("Load of system image failed");
-    else {
+    strcpy(imageFile,szBufferFilename);
+    fprintf(stderr,"onFileOpen: image %s; state %d\n",imageFile,mstate);
+    if (!openSystemImage(szBufferFilename)) {
+      emuInfoMessage("Load of system image failed");
+      imageFile[0] = 0;
+      updateWindowStatus();
+    } else {
       strcpy(imageFile,szBufferFilename);
       setWindowTitle(imageFile);
     }
@@ -949,13 +1001,20 @@ static int onFileOpen(VOID) {
 
 static int onFileSaveAs(VOID) {
   int mstate=nState;
-
+  char buf[1024];
+  
   switchToState(SM_INVALID);
-
   if (szBufferFilename[0] != 0) {
     strcpy(imageFile,szBufferFilename);
     fprintf(stderr,"onFileSaveAs: image %s; state %d\n",imageFile,mstate);
-    saveSystemImageAs(szBufferFilename);
+    if (!saveSystemImageAs(szBufferFilename)) {
+      if (bErrno) {
+      snprintf(buf,1023,"Unable to save system image as %s : %s",imageFile,strerror(bErrno));
+      emuInfoMessage(buf);
+      }
+      imageFile[0] = 0;
+      updateWindowStatus();
+    }
   }
   switchToState(mstate);
 
@@ -966,12 +1025,19 @@ static int onFileSaveAs(VOID) {
 
 static int onFileClose(VOID) {
   int mstate=nState;
+  char buf[1024];
 
   switchToState(SM_INVALID);
-  if (saveChanges(bAutoSave)!= 0) {
-    setWindowTitle("Untitled");
-    imageFile[0] = 0;         // No file associated with image anymore
+  if (saveChanges(bAutoSave)) {
+    setWindowTitle(defaultImagefile);
+  } else {
+    if (bErrno) {
+      snprintf(buf,1023,"Unable to save system image %s : %s",imageFile,strerror(bErrno));
+      emuInfoMessage(buf);
+    }
   }
+  imageFile[0] = 0;         // No file associated with image anymore
+  updateWindowStatus();
   
   switchToState(mstate);
 
@@ -1149,12 +1215,11 @@ static void setupMenuBar(EZ_Widget *mbar) {
 			   NULL);
   
 
-  EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  mbar,
+  EZ_CreateWidget(EZ_WIDGET_NORMAL_BUTTON,  mbar,
 		  EZ_LABEL_STRING,         "Quit",
 		  EZ_WIDTH,                64,
 		  EZ_BORDER_WIDTH,         4,
-		  EZ_BORDER_TYPE,          EZ_BORDER_SHADOW3,
-		  EZ_INDICATOR_TYPE,       EZ_EMPTY_INDICATOR,
+		  EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
 		  EZ_GRID_CELL_GEOMETRY,   6, 0, 1, 1,
 		  EZ_GRID_CELL_PLACEMENT,  EZ_FILL_BOTH, EZ_CENTER,
 		  EZ_CALLBACK,             quitCB, NULL,

@@ -23,6 +23,7 @@ extern int      bPhosphor;
 extern int      bRamInd;   // Ram size index
 extern int      memSizes[];
 extern int 	bSpeed;    // speed index
+extern int      bErrno;    // file access error code
 extern volatile unsigned int cpuCycles;
 extern Window	hWnd;
 extern Display *dpy;
