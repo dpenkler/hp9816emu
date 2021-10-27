@@ -122,9 +122,15 @@ take effect when initialising a **New** system image. Pascal programs
 compiled with the `$FLOAT_HDW ON$` directive require the floating
 point unit to be enabled.
 
-There are 4 general settings: "Set system time", "Auto save system image", "Auto save on exit"
-and "Phosphor".
-The general settings take effect immediately.
+There are 5 general settings: "Default filename for system image",
+"Set system time", "Auto save system image", "Auto save on exit" and
+"Phosphor".  The general settings take effect immediately.
+
+The "Default filename for system image" is used when no filename is associated with the current
+system image and when:
+* on **Quit** and "Auto save on exit" is enabled
+* on **New** or **Load** and "Auto save" is enabled
+By default it is set to "system.img" and can be changed by entering another filename in the available entry.
 
 Set system time when enabled will automatically set the system time for Pascal and Basic OS's
 
