@@ -47,6 +47,7 @@ static int onKey(int,unsigned int, int);
 static int onMouseWheel(UINT nFlags, WORD x, WORD y);
 static int onFileSaveAs(VOID);
 static int onFileOpen(VOID);
+static int saveChanges(BOOL bAuto);
 static void emuSetEvents(EZ_Widget *);
 
 static EZ_Widget *toplevel = NULL;     /* toplevel frame           */
@@ -311,14 +312,18 @@ static void emuSetEvents(EZ_Widget *widget) {
 
 static void quitCB(EZ_Widget *w, void *d) {
   int retval;
+  int mstate=nState;
   if (cpuThread) {
+    switchToState(SM_INVALID); 
+    if (!saveChanges(bAutoSaveOnExit)) {
+      emuInfoMessage("Unable to save system image, use saveAs");
+      switchToState(mstate);
+      return;
+    }
     switchToState(SM_RETURN);
     pthread_join(cpuThread, (void **)&retval);
     fprintf(stderr,"CPU thread stopped\n");
   }
-  if (bAutoSaveOnExit) {
-    /* TODO save image */
-  } 
   EZ_Shutdown();
   // CloseWaves();				// free sound memory
   exit(0);
@@ -502,7 +507,7 @@ void emuUpdateButton(int hpibAddr, int unit, char * lifVolume) {
 void emuUpdateDisk(int hpibadd, char * name) {
   int diskNo = 0;
   if (hpibadd>0) diskNo = hpibadd-1;
-  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
+  //  fprintf(stderr,"Disk: %d: <%s>\n",diskNo, name);
   EZ_ConfigureWidget(diskLabels[diskNo], EZ_LABEL_STRING, name, 0);
 }
 
@@ -860,8 +865,9 @@ static void ejectCB(EZ_Widget *w, void *d) {
   }
 }
 
-static UINT saveChanges(BOOL bAuto) {
+static int saveChanges(BOOL bAuto) {
   char buf[1024];
+  if (nState==SM_RUN) fprintf(stderr,"saveChanges called with SM_RUN\n");
   if (!bAuto) return 1;
   if (!imageFile[0]) {
     strcpy(imageFile,"system.img");
