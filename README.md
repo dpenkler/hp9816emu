@@ -126,18 +126,18 @@ There are 5 general settings: "Default filename for system image",
 "Set system time", "Auto save system image", "Auto save on exit" and
 "Phosphor".  The general settings take effect immediately.
 
-The "Default filename for system image" is initially set to "system.img" and can be changed by entering another filename in the available entry. 
+The "Default filename for system image" is initially set to "system.img" and can be changed by entering another filename in the entry box. 
 This filename is used when no filename is associated with the current system image when saving the system image:
 * on **Quit** and "Auto save on exit" is enabled
-* on **New** or **Load** and "Auto save" is enabled
+* on **New** or **Load** and "Auto save system image" is enabled
 The current filename associated with the system image is reflected in the emulator window title.
 
-Set system time when enabled will automatically set the system time for Pascal and Basic OS's
+"Set system time" when enabled will automatically set the system time for Pascal and Basic OS's
 
-Auto save system image when enabled will automatically save the
-current image when loading a new image with **Load** or initialising a new image with **New**. If
+"Auto save system image" when enabled will automatically save the
+current image when loading a new image with **Load** or initialising a new image with **New**.
 
-Auto save on exit when enabled will save the image on **Quit**. If no
+"Auto save on exit" when enabled will save the image on **Quit**. If no
 image file has been loaded the default filename for the system image is used.
 
 Be careful not to uninitentionally overwrite the default system image file when enabling the "Auto save" options. No confirmation questions will be asked.
