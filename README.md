@@ -140,9 +140,9 @@ current image when loading a new image with **Load** or initialising a new image
 Auto save on exit when enabled will save the image on **Quit**. If no
 image file has been loaded the default filename for the system image is used.
 
-Make sure you do not have anything you want to keep in the efault filename for system image "system.img" if you don't change it
+Be careful not to uninitentionally overwrite the default system image file when enabling the "Auto save" options. No confirmation questions will be asked.
 
-The Phosphor setting changes the colour of the screen. Choices are "White", "Green" and "Amber".
+The "Phosphor" setting changes the colour of the screen. Colour choices are: "White", "Green" and "Amber".
 
 To hide the Settings menu just click on the **OK** button.
 
