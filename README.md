@@ -1,11 +1,13 @@
 # hp9816emu an HP9816 Emulator for Linux
 
-This is an emulator for the HP9816 desktop workstation that was based on an 8MHz Motorola 68000 processor. It was released in 1982 and was the first affordable computational workstation with three progamming environments: Basic, HPL and Pascal.
+This is an emulator for the HP9816 desktop workstation that was based on an 8MHz Motorola 68000 processor. It was released in 1982 and was the first affordable computational workstation with three progamming environments: Basic, HPL and Pascal. This project is aimed at providing these excellent pre-mouse era programming environments on a modern linux machine for retrocomputing enthusiasts.
 
 ![hp9816](9816.jpg)
 
-The code was adapted from Olivier de Smet's 98x6 emulator for windows. See his 
- [Website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6).
+The code for the emulatorwas adapted from Olivier de Smet's 98x6 emulator for windows. See his 
+ [HP98x6 website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6).
+
+For history, documentation and software for the 9816 see the wonderful [HP Comupter Museum](http://www.hpmuseum.net/display_item.php?hw=4)
 
 License: GPL V3
 
@@ -256,11 +258,6 @@ The mappings are defined in keyboard.c
 ## Knob
 
 The knob is emulated by the mouse wheel. Unshifted moves horizontally, shifted moves vertically.
-
-## Resources
-
-For history, documentation and software for the 9816 see the wonderful [HP Comupter Museum](http://www.hpmuseum.net/display_item.php?hw=4)
-maintained by the wizards of Oz.
 
 ## Issues and enhancement requests
 

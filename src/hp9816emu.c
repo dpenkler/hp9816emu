@@ -1,21 +1,23 @@
-/*----------------------------------------------------------------*
- *                                                                *
- *                     hp9816emu             V0.01 18/09/21       *
- *                     =========                                  *
- *                                                                *
- *        An hp9816 emulator for linux (64-bit)                   *
- *        Ported to linux by Dave Penkler based on                *
- *        Olivier de Smet's 98x6 emulator for windows             *
- *                                                                *
- *  License: GNU GENERAL PUBLIC LICENSE Version 3                 *
- *                                                                *
- *  Disclaimer: This software is provided as is. It comes with    *
- *  the big girl/boy warranty - you use it entirely on your       *
- *  own responsibility and at your own risk.                      *
- *  It should only be used for educational or recreational        *
- *  purposes and not for any commercial purposes whatsoever.      *
- *                                                                *
- *----------------------------------------------------------------*/
+/*-----------------------------------------------------------------*
+ *                                                                 *
+ *                        hp9816emu             V0.90 30/10/21     *
+ *                        =========                                *
+ *                                                                 *
+ *           An hp9816 emulator for linux (64-bit)                 *
+ *           Ported to linux by Dave Penkler based on              *
+ *           Olivier de Smet's 98x6 emulator for windows           *
+ *                                                                 * 
+ *  License: GNU GENERAL PUBLIC LICENSE Version 3                  *
+ *                                                                 *
+ *  Disclaimer: This software is provided as is.                   *
+ *  It comes with the big girl/boy warranty -                      *
+ *         You use it entirely on your own responsibility          *
+ *         and at your own risk.                                   *
+ *                                                                 *
+ *  Its use is intended primarily for educational and recreational *
+ *  puropses and not for commercial purposes.                      *
+ *                                                                 *
+ *-----------------------------------------------------------------*/
 #include "EZ.h"
 #include <string.h>
 #include <errno.h>
@@ -562,8 +564,10 @@ static void setupSettingsMenu() {
 				 NULL);
  
   sysFrame     = EZ_CreateWidget(EZ_WIDGET_FRAME,         settingsMenu,
-				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
+				 EZ_BORDER_WIDTH,         4,
+				 EZ_ORIENTATION,          EZ_HORIZONTAL,
 				 EZ_LABEL_STRING,         "System Image Settings",
+				 EZ_FILL_MODE,            EZ_FILL_HORIZONTALLY,
 				 EZ_SIDE,                 EZ_LEFT,
 				 NULL);
 
@@ -588,7 +592,6 @@ static void setupSettingsMenu() {
 				 NULL);
 
   fpuBtn       = EZ_CreateWidget(EZ_WIDGET_CHECK_BUTTON,  fpuFrame,
-				 //				 EZ_BORDER_WIDTH,         4,
 				 EZ_BORDER_TYPE,          EZ_BORDER_RAISED,
 				 EZ_LABEL_STRING,         "Enabled",
 				 EZ_CALLBACK,             fpuCB, 0,
@@ -601,8 +604,10 @@ static void setupSettingsMenu() {
 				 EZ_FILL_MODE,            EZ_FILL_BOTH,
 				 EZ_SIDE,                 EZ_CENTER,
 				 NULL);
+  
   tmp          = EZ_CreateWidget(EZ_WIDGET_FRAME,         genFrame,
 				 EZ_LABEL_STRING, "Default filename for system image",
+				 EZ_TEXT_LINE_LENGTH,     33,
 				 EZ_ORIENTATION,          EZ_VERTICAL_TOP,
 				 EZ_SIDE,                 EZ_LEFT,
 				 0);
@@ -634,10 +639,9 @@ static void setupSettingsMenu() {
 				 0);
 
   btnFrame  = EZ_CreateWidget(EZ_WIDGET_FRAME,      genFrame,
-			      EZ_WIDTH,             100,
 			      EZ_LABEL_STRING,     "Phosphor",
-			      EZ_ORIENTATION,       EZ_VERTICAL,
-			      EZ_FILL_MODE,         EZ_FILL_NONE,
+			      EZ_ORIENTATION,       EZ_HORIZONTAL,
+			      EZ_FILL_MODE,         EZ_FILL_HORIZONTALLY,
 			      EZ_SIDE,              EZ_CENTER,
 			      NULL);
    
@@ -655,7 +659,7 @@ static void setupSettingsMenu() {
   
   pBtnG  = EZ_CreateWidget(EZ_WIDGET_RADIO_BUTTON,    btnFrame,
 			   EZ_LABEL_STRING,           "Green",
-			   EZ_BORDER_WIDTH,           0,
+			   EZ_BORDER_WIDTH,           1,
 			   EZ_BORDER_TYPE,            EZ_BORDER_UP,
 			   EZ_RADIO_BUTTON_GROUP,     3,
 			   EZ_RADIO_BUTTON_VALUE,     1,
@@ -1481,7 +1485,7 @@ static int onKey(int down, unsigned int keycode, int state) {
 }
 
 //
-// annunciator button handler
+// Drive unit button handler
 //
  VOID buttonEvent(BOOL state, UINT nId, int x, int y) {
    //  fprintf(stderr,"Button event: state %d, Id %d\n",state,nId);
@@ -1507,7 +1511,7 @@ int main(int ac, char **av) {
   mbar =  EZ_CreateWidget(EZ_WIDGET_FRAME, toplevel,
 			  EZ_PADX,                0,
 			  EZ_PADY,                0,
-			  EZ_GRID_CONSTRAINS,    EZ_ROW,      1,     300,  10,   0, 
+			  EZ_GRID_CONSTRAINS,    EZ_ROW,      1,    300,  10,   0, 
 			  EZ_GRID_CONSTRAINS,    EZ_COLUMN,   4,    200,  10,   0, 
 			  NULL);
 
