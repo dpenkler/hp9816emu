@@ -221,7 +221,8 @@ BYTE WriteMEM(BYTE *a, DWORD d, BYTE s) {
 	Chipset.annun &= 0x0007FF;
 	Chipset.annun |= (~(*(--a))) << 11;	// low byte is diagnostic leds
       }
-      s--;
+      // fprintf(stderr,("%06X: leds val %x at %06X \n"), Chipset.Cpu.PC,*a, ad) ;
+	      s--;
     }
     return BUS_OK;				// do nothing but no error
   } else if ((ad >= Chipset.RamStart) & (ad <= (unsigned)(0x01000000-s))) {	// RAM (from $880000)

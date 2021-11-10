@@ -650,7 +650,7 @@ VOID Do_Keyboard(VOID) {
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
-    case 0xA3:				// beep want 2 bytes
+    case 0xA3:				// beep wants 2 bytes
       CK.stKeyb = 0xA30;
 #if defined DEBUG_KEYBOARD
       k = sprintf(buffer,_T("	     : KEYBOARD : %03X Beep (2 bytes)\n"), CK.stKeyb);
@@ -873,11 +873,12 @@ VOID Do_Keyboard(VOID) {
     k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
-    CK.ram[0x23] = CK.datain;
+    CK.ram[0x24] = CK.datain;           // beep timer counts to zero
     break;
   case 0xA32:				// got a byte
-    CK.ram[0x24] = CK.datain;
+    CK.ram[0x23] = CK.datain;           // beep frequency / 81.38
     CK.stKeyb = 0;
+    emuBeep(CK.ram[0x23],256-CK.ram[0x24]);
 #if defined DEBUG_KEYBOARDC
     k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;

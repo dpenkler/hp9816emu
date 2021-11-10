@@ -337,7 +337,7 @@ static void quitCB(EZ_Widget *w, void *d) {
     fprintf(stderr,"CPU thread stopped\n");
   }
   EZ_Shutdown();
-  // CloseWaves();				// free sound memory
+  sound_close();
   exit(0);
 }
 
@@ -1572,6 +1572,9 @@ int main(int ac, char **av) {
   emuSetEvents(runBtn);
   EZ_AddEventHandler(runBtn, passThruEventHandler, NULL, 0);
   EZ_AddEventHandler(workArea, passThruEventHandler, NULL, 0);
+
+  sound_init();                         // initialise OSS for beeper
+
   nState     = SM_RUN;			// init state must be <> nNextState
   nNextState = SM_INVALID;		// go into invalid state
   pthread_create(&cpuThread,NULL,&cpuEmulator,NULL);

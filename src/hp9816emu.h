@@ -187,7 +187,7 @@ extern BYTE WriteMEM(BYTE *a, DWORD d, BYTE s);		// write on system bus
 // opcodes.c
 extern VOID decode_op(WORD op, OP *ope);                 // decode 'op' mc68000 opcode
 
-// Keyboard.c
+// keyboard.c
 extern VOID  KnobRotate(SWORD knob);			// mouse wheel is knob
 extern VOID KeyboardEventDown(BYTE nId);
 extern VOID KeyboardEventUp(BYTE nId);
@@ -198,6 +198,11 @@ extern VOID Do_Keyboard_Timers(DWORD cycles);		// do keyboard timers
 extern VOID Do_Keyboard(VOID);				// do keyboard stuff
 extern VOID Reset_Keyboard(VOID);			// at cold boot
 extern VOID Init_Keyboard(VOID);			// at re-load sys image
+
+// sound.c
+extern void sound_init();
+extern void sound_close();
+extern void emuBeep(int f, int d);
 
 #define ID_FILE_NEW    01  
 #define ID_FILE_OPEN   02
