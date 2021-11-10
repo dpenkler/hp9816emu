@@ -4,7 +4,7 @@ This is an emulator for the HP9816 desktop workstation that was based on an 8MHz
 
 ![hp9816](9816.jpg)
 
-The code for the emulatorwas adapted from Olivier de Smet's 98x6 emulator for windows. See his 
+The code for the emulator was adapted from Olivier de Smet's 98x6 emulator for windows. See his 
  [HP98x6 website](https://sites.google.com/site/olivier2smet2/hp_projects/hp98x6).
 
 For history, documentation and software for the 9816 see the wonderful [HP Comupter Museum](http://www.hpmuseum.net/display_item.php?hw=4)
