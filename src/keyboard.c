@@ -236,7 +236,7 @@ VOID KnobRotate(SWORD knob) {
   if ((CK.ram[0x1C] != 0x7F) && (knob < 0)) CK.ram[0x1C] += knob;
   if ((CK.ram[0x1C] != 0x80) && (knob > 0)) CK.ram[0x1C] += knob;
 #if defined DEBUG_KEYBOARDH
-  k = sprintf(buffer,_T("%06X: KEYBOARD : knob (%04X) = %04X\n"), Chipset.Cpu.PC, knob, CK.ram[0x1C]);
+  k = sprintf(buffer,"%06X: KEYBOARD : knob (%04X) = %04X\n", Chipset.Cpu.PC, knob, CK.ram[0x1C];
   OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 }
@@ -248,7 +248,7 @@ VOID KeyboardEventUp(BYTE nId) {
   WORD key;
 
 #if defined DEBUG_KEYBOARDH
-  k = sprintf(buffer,_T("%06X: KEYBOARD : up key %04X shift %X\n"), Chipset.Cpu.PC, nId, CK.shift);
+  k = sprintf(buffer,"%06X: KEYBOARD : up key %04X shift %X\n", Chipset.Cpu.PC, nId, CK.shift;
   OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 
@@ -274,7 +274,7 @@ VOID KeyboardEventDown(BYTE nId) {
   BYTE key;
 
 #if defined DEBUG_KEYBOARDH
-  k = sprintf(buffer,_T("%06X: KEYBOARD : down key %04X shift %X\n"), Chipset.Cpu.PC, nId, CK.shift);
+  k = sprintf(buffer,"%06X: KEYBOARD : down key %04X shift %X\n", Chipset.Cpu.PC, nId, CK.shift;
   OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 
@@ -305,7 +305,7 @@ BOOL WriteToKeyboard(LPBYTE lpData, DWORD dwSize) {
      {
      if (WaitForIdleState())
      {
-     InfoMessage(_T("The emulator is busy."));
+     InfoMessage("The emulator is busy.");
      return FALSE;
      }
      AsciiEventDown(*lpAd);
@@ -339,7 +339,7 @@ BYTE Write_Keyboard(BYTE *a, WORD d, BYTE s) {
       CK.stKeyb = 10;			// do a command;
       CK.command = *(--a);
 #if defined DEBUG_KEYBOARDH
-      k = sprintf(buffer,_T("%06X: KEYBOARD : write command = %02X\n"), Chipset.Cpu.PC, CK.command);
+      k = sprintf(buffer,"%06X: KEYBOARD : write command = %02X\n", Chipset.Cpu.PC, CK.command;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     }
@@ -353,7 +353,7 @@ BYTE Write_Keyboard(BYTE *a, WORD d, BYTE s) {
     CK.status |= 0x02;			// busy till take it
     CK.stKeyb = 1;			// go take it
 #if defined DEBUG_KEYBOARDH
-    k = sprintf(buffer,_T("%06X: KEYBOARD : write data = %02X\n"), Chipset.Cpu.PC, CK.datain);
+    k = sprintf(buffer,"%06X: KEYBOARD : write data = %02X\n", Chipset.Cpu.PC, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     return BUS_OK;
@@ -377,7 +377,7 @@ BYTE Read_Keyboard(BYTE *a, WORD d, BYTE s) {
   case 0x8001:				// data from 8041 to 68000
     *(--a) = CK.dataout;									
 #if defined DEBUG_KEYBOARDH
-    k = sprintf(buffer,_T("%06X: KEYBOARD : read data = %02X (%03d) \n"), Chipset.Cpu.PC, CK.dataout, CK.dataout);
+    k = sprintf(buffer,"%06X: KEYBOARD : read data = %02X (%03d) \n", Chipset.Cpu.PC, CK.dataout, CK.dataout;
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     CK.int68000 = 0;			// clear interrupt
@@ -388,7 +388,7 @@ BYTE Read_Keyboard(BYTE *a, WORD d, BYTE s) {
     *(--a) = CK.status;
     CK.status_cycles = 0; // read the status, keybord wait at least 1ms before doing something
 #if defined DEBUG_KEYBOARDH
-    k = sprintf(buffer,_T("%06X: KEYBOARD : read status = %02X\n"), Chipset.Cpu.PC, CK.status);
+    k = sprintf(buffer,"%06X: KEYBOARD : read status = %02X\n", Chipset.Cpu.PC, CK.status;
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     return BUS_OK;
@@ -433,7 +433,7 @@ VOID Reset_Keyboard(VOID) {
   CK.lo_b = 0x00;
   // doMouse = 0;
 #if defined DEBUG_KEYBOARDH
-  k = sprintf(buffer,_T("	 : KEYBOARD : Reset\n"));
+  k = sprintf(buffer,"	 : KEYBOARD : Reset\n");
   OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 }
@@ -611,70 +611,70 @@ VOID Do_Keyboard(VOID) {
     case 0xAD:						// set time of day and date want 3 to 5 bytes
       CK.stKeyb = 0xAD0;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set time of day and date (3 or 5 bytes) \n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set time of day and date (3 or 5 bytes) \n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xAF:						// set date want 2 bytes
       CK.stKeyb = 0xAF0;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set date (2 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set date (2 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xB4:				// set real-time match want 3 bytes, cancel it if 0
       CK.stKeyb = 0xB40;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set real time match (3 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set real time match (3 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xB7:				// set delayed interrupt want 3 bytes, cancel it if 0
       CK.stKeyb = 0xB70;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set delayed interrupt (3 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set delayed interrupt (3 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xBA:				// set cyclic interrupt want 3 bytes, cancel if 0
       CK.stKeyb = 0xBA0;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set cyclic interrupt (3 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set cyclic interrupt (3 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xB2:				// set up non-maskable timeout want 2 bytes, cancel if 0
       CK.stKeyb = 0xB20;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set non maskable timeout (2 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set non maskable timeout (2 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xA3:				// beep wants 2 bytes
       CK.stKeyb = 0xA30;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Beep (2 bytes)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Beep (2 bytes)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xA2:				// set auto-repeat rate want 1 byte
       CK.stKeyb = 0xA20;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set auto-repeat rate (1 byte)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set auto-repeat rate (1 byte)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xA0:				// set auto-repeat delay want 1 byte
       CK.stKeyb = 0xA00;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set auto-repeat delay (1 byte)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set auto-repeat delay (1 byte)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
     case 0xA6:				// set knob pulse accumulating period want 1 byte
       CK.stKeyb = 0xA60;
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : %03X Set knob pulse accumulating period (1 byte)\n"), CK.stKeyb);
+      k = sprintf(buffer,"	     : KEYBOARD : %03X Set knob pulse accumulating period (1 byte)\n", CK.stKeyb;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       break;
@@ -686,7 +686,7 @@ VOID Do_Keyboard(VOID) {
 	CK.ram[0x04] |= CK.intmask;
 	CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-	k = sprintf(buffer,_T("	       : KEYBOARD : %03X Mask interrupts : %02X\n"), CK.stKeyb, CK.intmask);
+	k = sprintf(buffer,"	       : KEYBOARD : %03X Mask interrupts : %02X\n", CK.stKeyb, CK.intmask;
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       } 
@@ -694,7 +694,7 @@ VOID Do_Keyboard(VOID) {
 	CK.dataout = CK.ram[CK.command & 0x01F];
 	CK.stKeyb = 20;
 #if defined DEBUG_KEYBOARD
-	k = sprintf(buffer,_T("	       : KEYBOARD : %03X read data (R%02X=%02X) and interrupt\n"), CK.stKeyb, CK.command & 0x01F, CK.dataout);
+	k = sprintf(buffer,"	       : KEYBOARD : %03X read data (R%02X=%02X) and interrupt\n", CK.stKeyb, CK.command & 0x01F, CK.dataout;
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       }
@@ -706,13 +706,13 @@ VOID Do_Keyboard(VOID) {
 	CK.ram[0x13] = CK.ram[(CK.command & 0x03F)-4];
 	CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-	k = sprintf(buffer,_T("	       : KEYBOARD : %03X copy data from %02X-%02X to 0x13-0x17\n"), CK.stKeyb, (CK.command & 0x03F)-4, (CK.command & 0x03F));
+	k = sprintf(buffer,"	       : KEYBOARD : %03X copy data from %02X-%02X to 0x13-0x17\n", CK.stKeyb, (CK.command & 0x03F)-4, (CK.command & 0x03F);
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       }
       else {
 #if defined DEBUG_KEYBOARD
-	k = sprintf(buffer,_T("	       : KEYBOARD : %03X unknown\n"), CK.stKeyb);
+	k = sprintf(buffer,"	       : KEYBOARD : %03X unknown\n", CK.stKeyb;
 	OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
 	CK.stKeyb = 0;			 // unknown command
@@ -722,7 +722,7 @@ VOID Do_Keyboard(VOID) {
     break;
   case 20:				 // send a level one interrupt to 68000
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("	   : KEYBOARD : Send interrupt for data\n"));
+    k = sprintf(buffer,"	   : KEYBOARD : Send interrupt for data\n");
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     CK.status &= 0x0E;
@@ -746,7 +746,7 @@ VOID Do_Keyboard(VOID) {
       CK.int68000 = 1;
       CK.send_wait = 1;			// wait for read dataout before next action
 #if defined DEBUG_KEYBOARDH
-      k = sprintf(buffer,_T("	     : KEYBOARD : Send interrupt for key : %02X,%02X\n"), CK.status, CK.dataout);
+      k = sprintf(buffer,"	     : KEYBOARD : Send interrupt for key : %02X,%02X\n", CK.status, CK.dataout;
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     }
@@ -766,7 +766,7 @@ VOID Do_Keyboard(VOID) {
     CK.send_wait = 1;			// wait for read dataout before next action
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDH
-    k = sprintf(buffer,_T("	   : KEYBOARD : Send interrupt for knob : %02X,%02X\n"), CK.status, CK.dataout);
+    k = sprintf(buffer,"	   : KEYBOARD : Send interrupt for knob : %02X,%02X\n", CK.status, CK.dataout;
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -775,7 +775,7 @@ VOID Do_Keyboard(VOID) {
     CK.status &= 0x0E;			// clear PSI and special
     if ((CK.ram[0x05] & 0x04) && (!(CK.ram[0x04] & 0x08))) {
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("	     : KEYBOARD : Send interrupt for PSI\n"));
+      k = sprintf(buffer,"	     : KEYBOARD : Send interrupt for PSI\n");
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       CK.ram[0x05] &= 0xFB;		// clear it
@@ -783,7 +783,7 @@ VOID Do_Keyboard(VOID) {
     }
     if ((CK.ram[0x05] & 0x08) && (!(CK.ram[0x04] & 0x04))) {
 #if defined DEBUG_KEYBOARD
-      k = sprintf(buffer,_T("        : KEYBOARD : Send interrupt for special timer\n"));
+      k = sprintf(buffer,"        : KEYBOARD : Send interrupt for special timer\n");
       OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
       CK.ram[0x05] &= 0xF7;		// clear it
@@ -799,7 +799,7 @@ VOID Do_Keyboard(VOID) {
 
   case 60:				// send nmi at level seven interrupt to 68000
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : Send interrupt for nmi\n"));
+    k = sprintf(buffer,"        : KEYBOARD : Send interrupt for nmi\n");
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     CK.status &= 0x00;
@@ -843,7 +843,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x20] = CK.datain;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -854,7 +854,7 @@ VOID Do_Keyboard(VOID) {
     break;
   case 0xA21:				// got a byte
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     CK.ram[0x22] = CK.datain;
@@ -870,7 +870,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xA32;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     CK.ram[0x24] = CK.datain;           // beep timer counts to zero
@@ -878,11 +878,11 @@ VOID Do_Keyboard(VOID) {
   case 0xA32:				// got a byte
     CK.ram[0x23] = CK.datain;           // beep frequency / 81.38
     CK.stKeyb = 0;
-    emuBeep(CK.ram[0x23],256-CK.ram[0x24]);
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03Xx Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
+		emuBeep(CK.ram[0x23],256-CK.ram[0x24]); // freq duration
     break;
 
   case 0xA60:				// set knob pulse accumulating period want 1 byte
@@ -893,7 +893,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x26] = CK.datain;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -909,7 +909,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xBA2;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -919,7 +919,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xBA3;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -929,7 +929,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x02] |= 0x10;		// set cyclic interrupt in use
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -944,7 +944,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xB72;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -953,7 +953,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xB73;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -962,7 +962,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x02] |= 0x20;		// set delay interrupt in use
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARD
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -977,7 +977,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xB42;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -986,7 +986,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xB43;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -995,7 +995,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x02] |= 0x40;		// set match interrupt in use
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1010,7 +1010,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xB22;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1019,7 +1019,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x02] |= 0x08;		// set nmi interrupt in use
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1033,7 +1033,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xAF2;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1041,7 +1041,7 @@ VOID Do_Keyboard(VOID) {
     CK.ram[0x31] = CK.datain;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1055,7 +1055,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xAD2;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1064,7 +1064,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xAD3;
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;
@@ -1073,7 +1073,7 @@ VOID Do_Keyboard(VOID) {
     CK.stKeybrtn = 0xAF1;		// loop to date
     CK.stKeyb = 0;
 #if defined DEBUG_KEYBOARDC
-    k = sprintf(buffer,_T("        : KEYBOARD : %03X Got a byte : %02X\n"), CK.stKeybrtn, CK.datain);
+    k = sprintf(buffer,"        : KEYBOARD : %03X Got a byte : %02X\n", CK.stKeybrtn, CK.datain);
     OutputDebugString(buffer); buffer[0] = 0x00;
 #endif
     break;

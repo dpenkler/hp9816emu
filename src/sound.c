@@ -2,20 +2,22 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <sys/soundcard.h>
 #include <math.h>
 
 #define SAMP_FREQ        16000
 #define MAX_DURATION     256       // centiseconds
 #define MAX_SND_BUF_LEN  MAX_DURATION*SAMP_FREQ/100
 #define NUM_SND_CHANS    1
-#define AMPLITUDE        32767
+
+void sound_close();
+
+#ifdef OSS
+#include <sys/soundcard.h>
+
 static int dspfd=-1;              /* SOUND file descriptor              */
 static int dsplen=2048;           /* buffer size in samples             */
 static int dspfs=0;               /* current sampling frequency         */
 static char *snd_file="/dev/dsp";
-
-void sound_close();
 
 static int sound_setfs(int fs) {
   int tmp = fs;
@@ -139,3 +141,74 @@ void emuBeep(int f, int d) { // frequency duration
     fprintf(stderr,"Short write to dsp wanted %d got %d\n",blen,len);
   sound_sync();
 }
+
+#else
+
+/* ALSA version */
+#include <alsa/asoundlib.h>
+static snd_pcm_t *pcm_handle=NULL;
+static char *device = "plughw:0,0";
+ 
+int sound_init() {
+  int err;
+
+  err = snd_pcm_open(&pcm_handle, device, SND_PCM_STREAM_PLAYBACK, 0);
+  if (err < 0) {
+    fprintf(stderr,"sound_init open error: %s\n", snd_strerror(err));
+    pcm_handle=NULL;
+    return 0;
+  }
+
+  err = snd_pcm_set_params(pcm_handle,
+			   SND_PCM_FORMAT_S8,
+			   SND_PCM_ACCESS_RW_INTERLEAVED,
+			   NUM_SND_CHANS,
+			   SAMP_FREQ,
+			   1,          //  soft resample
+			   10000); //  10msec latency min duration
+  if (err < 0) {
+    fprintf(stderr,"sound_init set_params failed: %s\n", snd_strerror(err));
+    sound_close();
+    return 0;
+  }
+  return 1;
+}
+
+static unsigned char dspout[MAX_SND_BUF_LEN];
+
+void sound_close() {
+  int err;
+  if (!pcm_handle) return;
+  err = snd_pcm_drain(pcm_handle);
+  if (err < 0)
+    printf("sound_close drain failed: %s\n", snd_strerror(err));
+  snd_pcm_close(pcm_handle);
+  pcm_handle = NULL;
+}
+
+void emuBeep(int f, int d) { // frequency duration
+  static snd_pcm_sframes_t frames;
+  int k,nsamps;
+  double freq,rps;
+  double pi = 3.141592653589793238462643383279; 
+  if (!pcm_handle) fprintf(stderr,"emuBeep sound not initialised");
+  fprintf(stderr,"emuBeep: %d %d\n",f,d);
+  if (!f) return; // * zero freq => no sound
+  snd_pcm_drop(pcm_handle); // throw away previous samples if any
+  snd_pcm_prepare(pcm_handle);
+  nsamps = d*SAMP_FREQ/100;
+  freq = f*81.38; // Pascal 3.2 Procedure Library 14-9
+  rps = (freq*2*pi)/(double)SAMP_FREQ;
+  for (k=0; k<nsamps; k++) dspout[k] = 127*sin(rps*k);
+  frames = snd_pcm_writei(pcm_handle,dspout,nsamps);
+  if (frames < 0) 
+    frames = snd_pcm_recover(pcm_handle, frames, 0);
+  if (frames < 0) {
+    fprintf(stderr,"emuBeep: writei failed: %s\n", snd_strerror(frames));
+    return;
+  }
+  if (frames > 0 && frames < nsamps)
+    fprintf(stderr,"Short write to dsp wanted %d got %ld\n",nsamps, frames);
+}
+
+#endif

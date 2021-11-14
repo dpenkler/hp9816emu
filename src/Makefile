@@ -12,7 +12,7 @@ OBJECTS = hp9816emu.o cpu9816.o display.o \
           opcodes.o sound.o
 
 LIBS = -L/usr/X11R6/lib -lEZ -lXext -LX11 -lSM -lICE -lX11 \
-	-ljpeg -lpng -ltiff -lz -lm -lpthread
+	-ljpeg -lpng -ltiff -lz -lm -lpthread -lasound
 
 PROGRAMS = hp9816emu
 SHELL   = /bin/bash
