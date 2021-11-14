@@ -219,7 +219,7 @@ The Leds above the red graphics reset button represent the CPU Status LEDs on th
 
 ## Keyboard
 
-   The HP9816 special keys are mapped to the US QWERTY keyboad as follows:
+   The HP9816 special keys are mapped to the US QWERTY keyboard as follows:
 
 ```
    UK Keyboard       HP9816 Key
