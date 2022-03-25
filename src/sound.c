@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 #include <math.h>
 
 #define SAMP_FREQ        16000
@@ -149,6 +150,14 @@ void emuBeep(int f, int d) { // frequency duration
 static snd_pcm_t *pcm_handle=NULL;
 static char *device = "plughw:0,0";
  
+static snd_pcm_sframes_t frames;
+static int soundpipe[2];
+
+typedef struct sndreq {
+  int freq;
+  int dura;
+} sndreq_t;
+
 int sound_init() {
   int err;
 
@@ -171,6 +180,11 @@ int sound_init() {
     sound_close();
     return 0;
   }
+  //  if (pipe2(soundpipe,O_DIRECT)) {
+  if (pipe(soundpipe)) {
+    perror("sound pipe creation failed\n");
+    exit(1);
+  }
   return 1;
 }
 
@@ -178,37 +192,52 @@ static unsigned char dspout[MAX_SND_BUF_LEN];
 
 void sound_close() {
   int err;
+  sndreq_t nullreq;
+  nullreq.freq = 0;
+  nullreq.dura = 0;
   if (!pcm_handle) return;
   err = snd_pcm_drain(pcm_handle);
   if (err < 0)
     printf("sound_close drain failed: %s\n", snd_strerror(err));
   snd_pcm_close(pcm_handle);
   pcm_handle = NULL;
+  write(soundpipe[1],&nullreq,sizeof(nullreq)); // trigger exit
 }
 
 void emuBeep(int f, int d) { // frequency duration
-  static snd_pcm_sframes_t frames;
-  int k,nsamps;
-  double freq,rps;
-  double pi = 3.141592653589793238462643383279; 
+  sndreq_t req;
   if (!pcm_handle) fprintf(stderr,"emuBeep sound not initialised");
   fprintf(stderr,"emuBeep: %d %d\n",f,d);
-  if (!f) return; // * zero freq => no sound
   snd_pcm_drop(pcm_handle); // throw away previous samples if any
-  snd_pcm_prepare(pcm_handle);
-  nsamps = d*SAMP_FREQ/100;
-  freq = f*81.38; // Pascal 3.2 Procedure Library 14-9
-  rps = (freq*2*pi)/(double)SAMP_FREQ;
-  for (k=0; k<nsamps; k++) dspout[k] = 127*sin(rps*k);
-  frames = snd_pcm_writei(pcm_handle,dspout,nsamps);
-  if (frames < 0) 
-    frames = snd_pcm_recover(pcm_handle, frames, 0);
-  if (frames < 0) {
-    fprintf(stderr,"emuBeep: writei failed: %s\n", snd_strerror(frames));
-    return;
-  }
-  if (frames > 0 && frames < nsamps)
-    fprintf(stderr,"Short write to dsp wanted %d got %ld\n",nsamps, frames);
+  if (!f) return; // * zero freq => no sound
+  req.freq = f;
+  req.dura = d;
+  write(soundpipe[1],&req,sizeof(req));
 }
 
+void *sndMonitor(void *arg) {
+  sndreq_t req;
+  double rps;
+  double freq;
+  double pi = 3.141592653589793238462643383279;
+  int k,nsamps;
+  while (pcm_handle) {
+    read(soundpipe[0],&req,sizeof(req));
+    fprintf(stderr,"sndMonitor: req dura %d freq %d\n",req.dura,req.freq);
+    if (!pcm_handle) break;
+    nsamps = req.dura*SAMP_FREQ/100;
+    freq = req.freq*81.38; // Pascal 3.2 Procedure Library 14-9
+    rps = (freq*2*pi)/(double)SAMP_FREQ;
+    for (k=0; k<nsamps; k++) dspout[k] = 127*sin(rps*k);
+    snd_pcm_prepare(pcm_handle);
+    frames = snd_pcm_writei(pcm_handle,dspout,nsamps);
+    if (frames < 0)
+      frames = snd_pcm_recover(pcm_handle, frames, 0);
+    if (frames < 0) {
+      fprintf(stderr,"emuBeep: writei failed: %s\n", snd_strerror(frames));
+    } else  if (frames > 0 && frames < nsamps)
+      fprintf(stderr,"Short write to dsp wanted %d got %ld\n",nsamps, frames);
+  }
+  return NULL;
+}
 #endif

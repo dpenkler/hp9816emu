@@ -28,7 +28,10 @@ extern volatile unsigned int cpuCycles;
 extern Window	hWnd;
 extern Display *dpy;
 
-extern pthread_t  cpuThread;			// system thread
+extern pthread_t  cpuThread;		// system thread
+extern pthread_t  sndThread;            // sound thread
+extern void *sndMonitor(void *);        // start function for sndThread
+
 extern void	setWindowTitle(LPTSTR szString);
 extern void	updateWindowStatus(VOID);
 extern void	buttonEvent(BOOL state, UINT nId, int x, int y);

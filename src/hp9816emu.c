@@ -42,6 +42,7 @@ volatile unsigned int cpuCycles;
 static char memDisp[64];
 int         bKeeptime = TRUE;
 pthread_t   cpuThread = 0;
+pthread_t   sndThread;                    // sound thread
 Window      hWnd=0;
 int         bErrno;
 
@@ -335,9 +336,10 @@ static void quitCB(EZ_Widget *w, void *d) {
     switchToState(SM_RETURN);
     pthread_join(cpuThread, (void **)&retval);
     fprintf(stderr,"CPU thread stopped\n");
+    pthread_join(sndThread, (void **)&retval);
+    fprintf(stderr,"Sound thread stopped\n");
   }
   EZ_Shutdown();
-  sound_close();
   exit(0);
 }
 
@@ -1573,8 +1575,9 @@ int main(int ac, char **av) {
   EZ_AddEventHandler(runBtn, passThruEventHandler, NULL, 0);
   EZ_AddEventHandler(workArea, passThruEventHandler, NULL, 0);
 
-  sound_init();                         // initialise OSS for beeper
-
+  sound_init();                         // initialise sound subsystem for beeper
+  pthread_create(&sndThread,NULL,sndMonitor,NULL);
+  
   nState     = SM_RUN;			// init state must be <> nNextState
   nNextState = SM_INVALID;		// go into invalid state
   pthread_create(&cpuThread,NULL,&cpuEmulator,NULL);

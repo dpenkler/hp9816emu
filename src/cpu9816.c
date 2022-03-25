@@ -331,6 +331,7 @@ void *cpuEmulator(void * targ) {
 
   if (nNextState == SM_RETURN) {		// go into return state
     nState = SM_RETURN;			        // in return state
+    sound_close();
     return 0;					// kill thread
   }
   
