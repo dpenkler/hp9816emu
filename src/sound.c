@@ -5,6 +5,11 @@
 #include <pthread.h>
 #include <math.h>
 
+#include "common.h"
+#include "hp9816emu.h"
+
+#define CK  Chipset.Keyboard
+
 #define SAMP_FREQ        16000
 #define MAX_DURATION     256       // centiseconds
 #define MAX_SND_BUF_LEN  MAX_DURATION*SAMP_FREQ/100
@@ -207,7 +212,7 @@ void sound_close() {
 void emuBeep(int f, int d) { // frequency duration
   sndreq_t req;
   if (!pcm_handle) fprintf(stderr,"emuBeep sound not initialised");
-  fprintf(stderr,"emuBeep: %d %d\n",f,d);
+  // fprintf(stderr,"emuBeep: %d %d\n",f,d);
   snd_pcm_drop(pcm_handle); // throw away previous samples if any
   if (!f) return; // * zero freq => no sound
   req.freq = f;
@@ -223,8 +228,9 @@ void *sndMonitor(void *arg) {
   int k,nsamps;
   while (pcm_handle) {
     read(soundpipe[0],&req,sizeof(req));
-    fprintf(stderr,"sndMonitor: req dura %d freq %d\n",req.dura,req.freq);
+    // fprintf(stderr,"sndMonitor: req dura %d freq %d\n",req.dura,req.freq);
     if (!pcm_handle) break;
+    CK.ram[0x02] |= 0x80;  // beeper busy
     nsamps = req.dura*SAMP_FREQ/100;
     freq = req.freq*81.38; // Pascal 3.2 Procedure Library 14-9
     rps = (freq*2*pi)/(double)SAMP_FREQ;
@@ -237,6 +243,8 @@ void *sndMonitor(void *arg) {
       fprintf(stderr,"emuBeep: writei failed: %s\n", snd_strerror(frames));
     } else  if (frames > 0 && frames < nsamps)
       fprintf(stderr,"Short write to dsp wanted %d got %ld\n",nsamps, frames);
+    // snd_pcm_drain(pcm_handle);  // wait for sound to finish
+    CK.ram[0x02] &= ~0x80;  // beeper not busy
   }
   return NULL;
 }

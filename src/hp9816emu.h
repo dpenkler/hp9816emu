@@ -203,7 +203,7 @@ extern VOID Reset_Keyboard(VOID);			// at cold boot
 extern VOID Init_Keyboard(VOID);			// at re-load sys image
 
 // sound.c
-extern void sound_init();
+extern int sound_init();
 extern void sound_close();
 extern void emuBeep(int f, int d);
 
